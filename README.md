@@ -24,7 +24,7 @@ RazorSentry is a production-structured fraud decisioning service that:
 
 ## Architecture
 
-Transactions arrive as JSON at the FastAPI Decision Engine. The feature engineering layer extracts velocity, balance error, drain pattern, and graph-flavored in-degree signals, then the LightGBM model produces a fraud probability score. A cost-aware thresholding module converts that probability into an APPROVE / REVIEW / BLOCK decision by maximising expected rupee net savings across both error types. Every decision — along with its score, reason codes, and SHAP values — is written to a SQLite audit log via SQLAlchemy before the response is returned to the caller. An optional Claude Haiku call drafts a 2-line analyst note for REVIEW-queue items only, after the decision is already final.
+Transactions arrive as JSON at the FastAPI Decision Engine. The feature engineering layer extracts velocity, balance error, drain pattern, and graph-flavored in-degree signals, then the LightGBM model produces a fraud probability score. A cost-aware thresholding module converts that probability into an APPROVE / REVIEW / BLOCK decision by maximising expected rupee net savings across both error types. Every decision — along with its score, reason codes, and SHAP values — is written to a SQLite audit log via SQLAlchemy before the response is returned to the caller. An optional Groq LLaMA (llama-3.1-8b-instant) call drafts a 2-line analyst note for REVIEW-queue items only, after the decision is already final.
 
 ---
 
@@ -75,7 +75,7 @@ This runs `src/eval.py`, which loads the held-out test split, applies the cost-a
 
 ## AI Judgment
 
-LightGBM makes every money decision in RazorSentry. The model's output probability is passed through a cost-aware threshold — computed from rupee false-positive and false-negative cost estimates — to produce the final APPROVE / REVIEW / BLOCK verdict. An LLM (Claude Haiku) is optionally invoked only after the deterministic model has already decided, and only for transactions that land in the REVIEW queue, where it drafts a plain-English analyst note summarising the SHAP explanation. The LLM never touches the decision boundary, never sees the threshold, and its output has no effect on whether a transaction is approved or declined.
+LightGBM makes every money decision in RazorSentry. The model's output probability is passed through a cost-aware threshold — computed from rupee false-positive and false-negative cost estimates — to produce the final APPROVE / REVIEW / BLOCK verdict. An LLM (Groq LLaMA — llama-3.1-8b-instant) is optionally invoked only after the deterministic model has already decided, and only for transactions that land in the REVIEW queue, where it drafts a plain-English analyst note summarising the SHAP explanation. The LLM never touches the decision boundary, never sees the threshold, and its output has no effect on whether a transaction is approved or declined.
 
 ---
 

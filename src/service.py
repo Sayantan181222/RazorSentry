@@ -21,7 +21,7 @@ from src.monitor import check_fraud_spike
 MODEL_PATH = os.getenv("MODEL_PATH", "models/lgbm_model.pkl")
 THRESHOLD_PATH = os.getenv("THRESHOLD_PATH", "models/threshold.txt")
 MODEL_VERSION = "lgbm_v1"
-BLOCK_THRESHOLD = 0.9
+BLOCK_THRESHOLD = 0.5
 
 REASON_MAP = {
     "balance_error_orig": "Accounting inconsistency in sender balance",

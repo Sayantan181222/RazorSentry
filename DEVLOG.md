@@ -71,7 +71,7 @@
 
 ## Day 5 — LLM Analyst Notes + Spike Monitor
 
-- LLM (Claude Haiku) drafts 2-line notes for REVIEW items only
+- LLM (Groq LLaMA — llama-3.1-8b-instant) drafts 2-line notes for REVIEW items only
 - LLM never touches the decision — this is explicit in architecture
 - Fraud spike monitor uses EWMA — deliberately LLM-free (fast, auditable)
 - This is the "AI judgment" story: right tool in right place, and where we chose not to use one
