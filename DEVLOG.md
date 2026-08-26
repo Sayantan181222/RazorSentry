@@ -27,8 +27,8 @@
 - Leakage note: all feature computation will be done strictly within split boundaries
 - `src/data_loader.py` created with modular functions for load, subsample, sort, split, save, and summary
 - `notebooks/eda.md` EDA template created
-- Train fraud rate: [to be filled after run]
-- Test fraud rate: [to be filled after run]
+- Train fraud rate: 0.9762%
+- Test fraud rate: 4.1754%
 
 ---
 
