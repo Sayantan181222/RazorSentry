@@ -118,3 +118,13 @@
 - demo_curl.sh executed: high-risk CASH_OUT scored 0.8045 → REVIEW
 - Groq analyst note working: yes
 
+---
+
+## Day 8 — Batch Replay + Final Submission Polish
+- Batch replay: 1,000 transactions — 0 blocked, 5 review, 995 approved
+- Avg latency: 3.4 ms
+- VIDEO_SCRIPT.md created
+- All files pushed to GitHub
+- Submission ready at https://github.com/Sayantan181222/RazorSentry
+
+
