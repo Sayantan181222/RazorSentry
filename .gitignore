@@ -9,4 +9,3 @@ data/*.csv
 data/*.parquet
 models/*.pkl
 models/*.joblib
-reports/*.png

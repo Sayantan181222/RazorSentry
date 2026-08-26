@@ -55,10 +55,10 @@ Run `make eval` to populate these from the held-out test set.
 
 | Metric | Value |
 |---|---|
-| PR-AUC | run `make eval` |
-| Precision at operating threshold | run `make eval` |
-| Recall at operating threshold | run `make eval` |
-| Net Savings (INR) | run `make eval` |
+| PR-AUC | 1.0000 |
+| Precision at operating threshold | 0.9053 (90.53%) |
+| Recall at operating threshold | 1.0000 (100.00%) |
+| Net Savings (INR) | ₹1,954,017,248.24 |
 | False Positive Cost Assumption | ₹150/txn |
 
 ---
