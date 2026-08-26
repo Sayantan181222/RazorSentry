@@ -1,11 +1,14 @@
 # LLM is NEVER in the decision path — it only drafts notes after the model has already decided REVIEW
 
-import os
 import json
+import os
 import urllib.request
+from dotenv import load_dotenv
+
+load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = os.getenv("GROQ_MODEL", "groq/compound-mini")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 FALLBACK_NOTE = "Analyst note unavailable — manual review required"
 
@@ -31,7 +34,8 @@ def _build_prompt(transaction: dict, score: float, reasons: list) -> str:
 # Calls Groq API using urllib to generate a 2-line analyst note for a REVIEW-queue transaction
 def generate_analyst_note(transaction: dict, score: float, reasons: list) -> str:
     try:
-        if not GROQ_API_KEY:
+        api_key = os.getenv("GROQ_API_KEY", GROQ_API_KEY)
+        if not api_key:
             return FALLBACK_NOTE
         prompt = _build_prompt(transaction, score, reasons)
         payload = json.dumps({
@@ -45,7 +49,8 @@ def generate_analyst_note(transaction: dict, score: float, reasons: list) -> str
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
+                "User-Agent": "RazorSentry/1.0",
             },
             method="POST",
         )

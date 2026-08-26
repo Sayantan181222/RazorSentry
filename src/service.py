@@ -3,6 +3,9 @@ import pickle
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import numpy as np
 import pandas as pd

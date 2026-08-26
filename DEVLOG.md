@@ -109,3 +109,12 @@
 - Architecture doc finalized with Decision Policy table
 - All files reviewed for clean code and one-line comments
 - Submission ready
+
+---
+
+## Day 7 — Service Running + Tests
+- FastAPI service started successfully on port 8000
+- pytest results: 6 passed, 0 failed (100% pass)
+- demo_curl.sh executed: high-risk CASH_OUT scored 0.8045 → REVIEW
+- Groq analyst note working: yes
+

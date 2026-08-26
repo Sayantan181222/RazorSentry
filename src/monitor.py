@@ -20,9 +20,9 @@ def check_fraud_spike(recent_scores: list[float], window: int = 100, threshold: 
     for val in flagged[1:]:
         ewma = alpha * val + (1 - alpha) * ewma
 
-    spike = ewma > BASELINE_FRAUD_RATE * SPIKE_MULTIPLIER
+    spike = bool(ewma > BASELINE_FRAUD_RATE * SPIKE_MULTIPLIER)
 
-    result: dict = {"spike_detected": spike, "ewma_rate": round(ewma, 6)}
+    result: dict = {"spike_detected": spike, "ewma_rate": round(float(ewma), 6)}
     if spike:
         result["message"] = (
             f"Fraud spike detected — EWMA rate {ewma:.2%} exceeds "
