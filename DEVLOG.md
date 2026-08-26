@@ -122,7 +122,8 @@
 
 ## Day 8 — Batch Replay + Final Submission Polish
 - Batch replay: 1,000 transactions — 0 blocked, 5 review, 995 approved
-- Avg latency: 3.4 ms
+- Avg latency: 3.2 ms
+- BLOCK threshold corrected to 0.5 — three-tier policy now active across all decisions
 - VIDEO_SCRIPT.md created
 - All files pushed to GitHub
 - Submission ready at https://github.com/Sayantan181222/RazorSentry
