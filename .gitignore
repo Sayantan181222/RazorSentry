@@ -1,0 +1,13 @@
+.env
+*.db
+mlruns/
+__pycache__/
+*.pyc
+.DS_Store
+data/*.csv
+data/*.parquet
+models/*.pkl
+models/*.joblib
+reports/*.png
+reports/*.json
+reports/*.csv
