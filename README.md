@@ -83,6 +83,8 @@ LightGBM makes every money decision in RazorSentry. The model's output probabili
 
 During feature engineering, velocity features (`orig_txn_count_1h`, `orig_txn_sum_1h`, `dest_in_degree_1h`) were initially computed across the full dataset before the train/test split, causing PR-AUC to appear inflated (~0.999). This was identified as leakage and fixed by computing all features strictly within split boundaries. The operating threshold was tuned on a validation split carved from train data only — never on the test set.
 
+The near-perfect PR-AUC (0.9999) is a known characteristic of the PaySim synthetic dataset — balance-error features alone nearly separate the classes because PaySim encodes fraud with deterministic accounting anomalies. This is documented in the PaySim literature. We report precision and recall at the operating threshold alongside AUC precisely because AUC alone is misleading on synthetic data.
+
 ---
 
 ## Track
