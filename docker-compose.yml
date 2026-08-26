@@ -1,0 +1,11 @@
+services:
+  razorsentry:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./reports:/app/reports
+    environment:
+      - DATABASE_URL=sqlite:////app/data/razorsentry.db
