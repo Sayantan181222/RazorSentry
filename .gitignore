@@ -1,4 +1,5 @@
 .env
+.venv/
 *.db
 mlruns/
 __pycache__/
@@ -9,5 +10,3 @@ data/*.parquet
 models/*.pkl
 models/*.joblib
 reports/*.png
-reports/*.json
-reports/*.csv

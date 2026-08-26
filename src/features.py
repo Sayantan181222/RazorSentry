@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 
@@ -97,31 +98,37 @@ def compute_high_amount_flag(df: pd.DataFrame) -> pd.Series:
 # Vectorised helper that computes velocity and graph features using groupby for performance
 def _compute_velocity_features_fast(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    df["_idx"] = np.arange(len(df))
+    if len(df) <= 1:
+        df["orig_txn_count_1h"] = 0
+        df["orig_txn_sum_1h"] = 0.0
+        df["dest_in_degree_1h"] = 0
+        return df
 
-    orig_count = []
-    orig_sum = []
-    dest_indegree = []
+    orig_stats = df.groupby(["step", "nameOrig"])["amount"].agg(["count", "sum"]).reset_index()
+    orig_stats["lookup_step"] = orig_stats["step"] + VELOCITY_WINDOW
 
-    step_arr = df["step"].values
-    orig_arr = df["nameOrig"].values
-    dest_arr = df["nameDest"].values
-    amount_arr = df["amount"].values
+    dest_stats = df.groupby(["step", "nameDest"])["nameOrig"].nunique().reset_index()
+    dest_stats.rename(columns={"nameOrig": "in_degree"}, inplace=True)
+    dest_stats["lookup_step"] = dest_stats["step"] + VELOCITY_WINDOW
 
-    for i in range(len(df)):
-        s = step_arr[i]
-        mask_window = (step_arr >= s - VELOCITY_WINDOW) & (step_arr < s)
+    df = df.merge(
+        orig_stats[["lookup_step", "nameOrig", "count", "sum"]],
+        left_on=["step", "nameOrig"],
+        right_on=["lookup_step", "nameOrig"],
+        how="left",
+    )
+    df["orig_txn_count_1h"] = df["count"].fillna(0).astype(int)
+    df["orig_txn_sum_1h"] = df["sum"].fillna(0.0).astype(float)
+    df.drop(columns=["count", "sum", "lookup_step"], inplace=True)
 
-        orig_mask = mask_window & (orig_arr == orig_arr[i])
-        orig_count.append(int(orig_mask.sum()))
-        orig_sum.append(float(amount_arr[orig_mask].sum()))
-
-        dest_mask = mask_window & (dest_arr == dest_arr[i])
-        dest_indegree.append(int(np.unique(orig_arr[dest_mask]).shape[0]))
-
-    df["orig_txn_count_1h"] = orig_count
-    df["orig_txn_sum_1h"] = orig_sum
-    df["dest_in_degree_1h"] = dest_indegree
+    df = df.merge(
+        dest_stats[["lookup_step", "nameDest", "in_degree"]],
+        left_on=["step", "nameDest"],
+        right_on=["lookup_step", "nameDest"],
+        how="left",
+    )
+    df["dest_in_degree_1h"] = df["in_degree"].fillna(0).astype(int)
+    df.drop(columns=["in_degree", "lookup_step"], inplace=True)
     return df
 
 

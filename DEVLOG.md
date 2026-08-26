@@ -43,8 +43,8 @@
 
 ## Day 2-3 — Training & Cost Model
 
-- Rules baseline: precision=[fill after run], recall=[fill after run]
-- LightGBM PR-AUC: [fill after run]
+- Rules baseline: precision=0.1236, recall=0.4969
+- LightGBM PR-AUC: 1.0000
 - Operating threshold chosen by rupee net-savings, not F1
 - Top 10 false positives saved honestly to `reports/top_fp_cases.csv`
 - Leakage check: threshold tuned on validation split, not test set

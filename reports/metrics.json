@@ -1,0 +1,16 @@
+{
+  "operating_threshold": 0.02,
+  "precision": 0.9052901023890785,
+  "recall": 1.0,
+  "f1": 0.9502910882221227,
+  "pr_auc": 0.9999788274468245,
+  "net_savings_inr": 1954017248.24,
+  "avg_fraud_loss_inr": 460434.46,
+  "fp_cost_per_txn_inr": 150.0,
+  "false_positives": 444,
+  "false_negatives": 0,
+  "baseline_precision": 0.12357180523817894,
+  "baseline_recall": 0.4969368520263902,
+  "total_test_txns": 101643,
+  "total_test_frauds": 4244
+}
