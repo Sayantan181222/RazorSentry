@@ -5,21 +5,24 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///test_razorsentry.db")
+os.environ.setdefault("MODEL_PATH", "models/lgbm_model.pkl")
+os.environ.setdefault("THRESHOLD_PATH", "models/threshold.txt")
 
 import pytest
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from src.service import app, lifespan
+# Import app only — not lifespan — so CI does not crash without a trained model
+from src.service import app
 
 
-# Provides an async httpx client wired directly to the FastAPI app via ASGITransport
+# Provides an async test client wired directly to the FastAPI app
 @pytest.fixture
 async def client():
-    async with lifespan(app):
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as ac:
-            yield ac
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        yield ac
 
 
 # Returns True if the trained model artifact exists on disk
