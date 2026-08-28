@@ -85,6 +85,41 @@ During feature engineering, velocity features (`orig_txn_count_1h`, `orig_txn_su
 
 The near-perfect PR-AUC (0.9999) is a known characteristic of the PaySim synthetic dataset — balance-error features alone nearly separate the classes because PaySim encodes fraud with deterministic accounting anomalies. This is documented in the PaySim literature. We report precision and recall at the operating threshold alongside AUC precisely because AUC alone is misleading on synthetic data.
 
+## Model Card
+
+| Field | Detail |
+|-------|--------|
+| **Training data** | PaySim synthetic dataset — 500,000 legit + all fraud rows (~4,244 fraud in test set) |
+| **Fraud rate (train)** | ~0.98% |
+| **Fraud rate (test)** | ~4.18% — fraud concentrated in later time steps as expected |
+| **Features used** | balance_error_orig, balance_error_dest, drain_flag, zero_orig_after, type_encoded, amount_log, orig_txn_count_1h, orig_txn_sum_1h, dest_in_degree_1h, high_amount_flag |
+| **Model** | LightGBM with scale_pos_weight for class imbalance |
+| **Threshold selection** | Cost-aware rupee net-savings sweep on validation split — not F1, not test set |
+| **Operating threshold** | 0.02 (model is well-separated; low threshold catches all fraud at high precision) |
+| **PR-AUC** | 0.9999 (expected on PaySim — synthetic balance-error features nearly perfectly separate classes) |
+| **Precision @ threshold** | 0.905 |
+| **Recall @ threshold** | 1.000 |
+| **False positive cost** | ₹150 per transaction (review cost assumption) |
+| **Net savings (test set)** | ₹1.95 Cr across 101,643 test transactions |
+
+### Known Failure Modes
+| Failure Mode | Description |
+|-------------|-------------|
+| Merchant accounts | PaySim merchant destinations (M...) always have zero balance — balance_error_dest is not meaningful for these |
+| Zero-balance senders | drain_flag was fixed to guard against zero-balance false positives (amount >= 90% of 0 is always true) |
+| Synthetic data gap | PaySim encodes fraud deterministically — real-world fraud is noisier; PR-AUC will be lower on live data |
+| Single-step velocity | Velocity features use step=1 window — may miss slow-burn fraud over many hours |
+
+### Intended Use
+- Scoring individual transactions in real time via POST /score
+- Batch scoring historical transactions via POST /batch
+- Ingesting Razorpay payment webhook events via POST /webhook/razorpay
+
+### Not Intended For
+- Replacing human review for high-value transactions above ₹10 lakh
+- Deployment on non-PaySim real data without retraining and recalibration
+- Offensive fraud (identifying vulnerabilities to exploit) — strictly defense-only
+
 ---
 
 ## Track
