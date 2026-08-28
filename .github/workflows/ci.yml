@@ -20,19 +20,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-
-      - name: Verify project structure
-        run: |
-          pwd
-          ls -la
-          ls -la src
-          python -c "import os, sys; print('PWD:', os.getcwd()); print('PYTHONPATH:', os.environ.get('PYTHONPATH')); print('SYS.PATH:', sys.path)"
+        run: pip install -r requirements.txt
 
       - name: Run tests
         env:
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          python -m pytest tests/ -v
+          PYTHONPATH: .
+        run: python -m pytest tests/ -v
