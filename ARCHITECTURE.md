@@ -108,6 +108,24 @@ cryptographic attestation of the scoring environment.
 
 ---
 
+## Production Monitoring
+
+Two monitors run independently of the scoring pipeline:
+
+**Fraud Spike Monitor (EWMA)**
+Computes exponentially weighted moving average of the flagged-transaction rate.
+Alerts when EWMA exceeds 2x the baseline fraud rate (2%). LLM-free by design.
+Endpoint: GET /monitor/spike
+
+**Feature Drift Monitor (PSI)**
+Computes Population Stability Index between training-time feature distributions
+and recent incoming transactions. PSI > 0.1 is a warning. PSI > 0.2 triggers
+a retrain recommendation. Checks amount_log and high_amount_flag distributions.
+LLM-free by design — pure statistics.
+Endpoint: GET /monitor/drift
+
+---
+
 ## Decision Policy
 
 Every transaction receives one of three verdicts based purely on the model score. The LLM analyst note is generated after the verdict is final and has no influence on it.

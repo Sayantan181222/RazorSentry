@@ -149,3 +149,13 @@ async def test_pii_blinding(client: AsyncClient, model_available: bool):
     assert stored_txn_id != "SENSITIVE_ACCOUNT_12345", "Raw PII must not be stored in audit log"
     assert len(stored_txn_id) == 16, "Blinded ID must be 16 hex chars"
 
+
+# Tests that the drift monitor endpoint returns required fields
+@pytest.mark.anyio
+async def test_monitor_drift(client: AsyncClient):
+    response = await client.get("/monitor/drift")
+    assert response.status_code == 200
+    data = response.json()
+    assert "drift_checked" in data
+
+

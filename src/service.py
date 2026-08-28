@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from src.analyst import generate_analyst_note
 from src.audit import get_decision, get_recent_decisions, init_db, log_decision
+from src.drift import check_drift
 from src.features import build_features, get_feature_columns
 from src.monitor import check_fraud_spike
 from src.privacy import blind_identifier, blind_transaction
@@ -271,6 +272,26 @@ def monitor_spike() -> dict:
     decisions = get_recent_decisions(limit=100)
     scores = [d["score"] for d in decisions if "score" in d]
     return check_fraud_spike(scores, window=100, threshold=_operating_threshold)
+
+
+# Checks PSI drift between recent scored transactions and training distribution
+@app.get("/monitor/drift")
+def monitor_drift() -> dict:
+    decisions = get_recent_decisions(limit=200)
+    if len(decisions) < 10:
+        return {"drift_checked": False, "reason": "Not enough recent decisions for drift check"}
+    rows = []
+    for d in decisions:
+        rows.append({
+            "amount": d.get("amount", 0),
+            "transaction_type": d.get("transaction_type", "PAYMENT"),
+        })
+    df = pd.DataFrame(rows)
+    df["amount_log"] = np.log1p(df["amount"])
+    df["high_amount_flag"] = (df["amount"] > 200000).astype(int)
+    from src.features import get_feature_columns
+    available_cols = [c for c in ["amount_log", "high_amount_flag"] if c in df.columns]
+    return check_drift(df, available_cols)
 
 
 # Generates a 2-line LLM analyst note for a REVIEW-queue transaction by decision ID

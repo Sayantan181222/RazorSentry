@@ -20,6 +20,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
+from src.drift import save_reference_stats
 from src.features import build_features, get_feature_columns
 
 TRAIN_PATH = os.getenv("TRAIN_PATH", "data/train.parquet")
@@ -248,6 +249,8 @@ def main() -> None:
     test_df = build_features(test_raw)
 
     feat_cols = get_feature_columns()
+    save_reference_stats(train_df, feat_cols)
+    print("Reference stats saved to models/reference_stats.json")
     X_train = train_df[feat_cols]
     y_train = train_df["isFraud"].astype(int).reset_index(drop=True)
     X_test = test_df[feat_cols]
