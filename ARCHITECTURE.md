@@ -85,13 +85,36 @@ The decision boundary in RazorSentry is owned entirely by the LightGBM model and
 
 ---
 
+## Privacy Layer (Software PII Blinding)
+
+Raw account identifiers (nameOrig, nameDest, transaction_id) are never stored
+in the audit log. Before any write to SQLite, identifiers are one-way hashed
+with HMAC-SHA256 keyed on PII_SALT (an environment secret). The hash is
+truncated to 16 hex characters — enough to correlate decisions on the same
+account without recovering the original ID.
+
+This is not a hardware TEE (future scope) but provides meaningful protection
+against audit log exfiltration. The model scoring pipeline never sees blinded
+values — blinding happens after scoring, before storage only.
+
+| What is stored | What is NOT stored |
+|---|---|
+| HMAC-SHA256[:16] of transaction_id | Raw account number |
+| HMAC-SHA256[:16] of nameOrig | Raw sender phone/email |
+| Score, decision, reasons, amount | Raw receiver identifier |
+
+Future scope: Hardware TEE (AWS Nitro Enclaves / Intel SGX) for full
+cryptographic attestation of the scoring environment.
+
+---
+
 ## Decision Policy
 
 Every transaction receives one of three verdicts based purely on the model score. The LLM analyst note is generated after the verdict is final and has no influence on it.
 
 | Score Range | Decision | LLM Involved? |
 |---|---|---|
-| score >= 0.9 | BLOCK | No |
+| score >= 0.5 | BLOCK | No |
 | score >= operating_threshold | REVIEW + LLM analyst note | Note only, post-decision |
 | score < operating_threshold | APPROVE | No |
 

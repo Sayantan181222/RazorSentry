@@ -9,3 +9,4 @@ services:
       - ./reports:/app/reports
     environment:
       - DATABASE_URL=sqlite:////app/data/razorsentry.db
+      - PII_SALT=razorsentry-change-this-in-production

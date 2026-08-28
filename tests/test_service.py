@@ -121,3 +121,31 @@ async def test_razorpay_webhook(client: AsyncClient, model_available: bool):
     data = response.json()
     assert "razorsentry_decision" in data
     assert "webhook_event" in data
+
+
+# Tests that the audit log stores a blinded transaction_id not the raw value
+@pytest.mark.anyio
+async def test_pii_blinding(client: AsyncClient, model_available: bool):
+    if not model_available:
+        pytest.skip("Model not available in CI environment")
+    txn = {
+        "transaction_id": "SENSITIVE_ACCOUNT_12345",
+        "step": 1,
+        "type": "PAYMENT",
+        "amount": 500.0,
+        "nameOrig": "C111111111",
+        "oldbalanceOrg": 10000.0,
+        "newbalanceOrig": 9500.0,
+        "nameDest": "M999999999",
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 0.0,
+    }
+    score_resp = await client.post("/score", json=txn)
+    assert score_resp.status_code == 200
+    decision_id = score_resp.json()["decision_id"]
+    audit_resp = await client.get(f"/decisions/{decision_id}")
+    assert audit_resp.status_code == 200
+    stored_txn_id = audit_resp.json()["transaction_id"]
+    assert stored_txn_id != "SENSITIVE_ACCOUNT_12345", "Raw PII must not be stored in audit log"
+    assert len(stored_txn_id) == 16, "Blinded ID must be 16 hex chars"
+

@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 import shap
@@ -17,6 +18,7 @@ from src.analyst import generate_analyst_note
 from src.audit import get_decision, get_recent_decisions, init_db, log_decision
 from src.features import build_features, get_feature_columns
 from src.monitor import check_fraud_spike
+from src.privacy import blind_identifier, blind_transaction
 
 MODEL_PATH = os.getenv("MODEL_PATH", "models/lgbm_model.pkl")
 THRESHOLD_PATH = os.getenv("THRESHOLD_PATH", "models/threshold.txt")
@@ -145,8 +147,9 @@ def _score_transaction(tx: TransactionInput) -> ScoreResponse:
 
     latency_ms = (time.perf_counter() - t0) * 1000
 
+    blinded_txn_id = blind_identifier(tx.transaction_id)
     decision_id = log_decision(
-        transaction_id=tx.transaction_id,
+        transaction_id=blinded_txn_id,
         score=prob,
         decision=decision,
         top_reasons=reasons,
