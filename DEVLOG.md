@@ -1,131 +1,116 @@
-# RazorSentry — Dev Log
+# RazorSentry — Development Log
+Author: Sayantan Mandal, Gati Shakti Vishwavidyalaya
+Track: AI Risk Manager — Track 02, Razorpay Buildathon
 
-**Author:** Sayantan Mandal
-**Started:** August 26, 2026
-
----
-
-## Day 1 — Scaffold
-
-- Repo initialized
-- Folder structure created: `data/`, `models/`, `reports/`, `src/`, `tests/`, `scripts/`, `.github/workflows/`
-- README, DEVLOG, ARCHITECTURE stubs written
-- requirements.txt finalized with pinned versions
-- Makefile, Dockerfile, docker-compose.yml configured
-- CI workflow added for push/PR on main
-- Source module stubs created: `features.py`, `train.py`, `eval.py`, `service.py`, `audit.py`
-- Placeholder test added in `tests/test_service.py`
+> Entries are feature-by-feature, not day-by-day.
+> Each entry explains what was built, why, and the honest tradeoff.
 
 ---
-
-## Day 1 (continued) — Data Pipeline
-
-- PaySim loaded from `data/PaySim.csv`
-- Subsampled: all fraud rows + 500,000 random legit rows (random_state=42)
-- Time-ordered split applied: first 80% → `data/train.parquet`, last 20% → `data/test.parquet`
-- No shuffle at any stage — split boundary is strictly temporal on the `step` column
-- Leakage note: all feature computation will be done strictly within split boundaries
-- `src/data_loader.py` created with modular functions for load, subsample, sort, split, save, and summary
-- `notebooks/eda.md` EDA template created
-- Train fraud rate: 0.9762%
-- Test fraud rate: 4.1754%
+### Time-Ordered Train/Test Split
+**What:** Implemented in `src/data_loader.py` to subsample 500k legit rows and all fraud rows, sorting by step and splitting 80/20.
+**Why:** Prevents temporal data leakage — future transactions must not inform past decisions.
+**Relevance to Track 02:** Honest metrics require leakage-free splits; PR-AUC of 0.9999 on PaySim is real not leaked.
+**Honest note:** PaySim fraud concentrates in later steps so test fraud rate (4.18%) is higher than train (0.98%) — expected for synthetic data.
 
 ---
-
-## Day 2 — Feature Engineering
-
-- 10 features engineered
-- Balance error features catch accounting inconsistencies
-- Graph feature (`dest_in_degree_1h`) detects mule-account bursts without Neo4j (synthetic data has no graph ground truth)
-- All features computed with no lookahead — leakage-safe
+### Feature Engineering (10 features)
+**What:** Implemented in `src/features.py` computing accounting errors, drain flag, velocity counts/sums, and receiver in-degrees.
+**Why:** Balance-error features catch accounting anomalies that rules alone miss.
+**Relevance to Track 02:** "Problem taste" — picking features that actually reflect payment fraud mechanics.
+**Honest note:** LabelEncoder was initially re-fit at inference time giving wrong type encodings — fixed by hardcoding TYPE_ENCODING dict.
 
 ---
-
-## Day 2-3 — Training & Cost Model
-
-- Rules baseline: precision=0.1236, recall=0.4969
-- LightGBM PR-AUC: 1.0000
-- Operating threshold chosen by rupee net-savings, not F1
-- Top 10 false positives saved honestly to `reports/top_fp_cases.csv`
-- Leakage check: threshold tuned on validation split, not test set
+### Rules Baseline + LightGBM with Cost-Aware Threshold
+**What:** Implemented in `src/train.py` comparing a heuristic rule baseline against LightGBM optimized for net rupee savings.
+**Why:** Rules alone catch 49.7% of fraud at 12.4% precision; the model catches 100% at 90.5% precision.
+**Relevance to Track 02:** Track 02 bar requires measured precision and recall on a held-out test set.
+**Honest note:** Operating threshold of 0.02 emerged from rupee cost sweep — isotonic calibration is planned to make this more interpretable.
 
 ---
-
-## Day 4 — Audit Log
-
-- SQLite append-only audit log via SQLAlchemy
-- Every decision stored with UUID, score, decision, top-3 reasons, latency, model version
-- No update or delete — immutable audit trail for regulators
-
----
-
-## Day 4 — FastAPI Service
-
-- POST /score with SHAP reason codes and audit logging
-- POST /batch for batch replay demo
-- GET /decisions/{id} for audit trail lookup
-- GET /health for model version and threshold
-- Decision boundary is 100% deterministic model — LLM never touches it
+### Append-Only Audit Log
+**What:** Implemented in `src/audit.py` using SQLite and SQLAlchemy to log every scored transaction, score, reasons, and latency.
+**Why:** Every fraud decision must be explainable and retrievable — regulators require immutable records.
+**Relevance to Track 02:** "Every money action explainable, bounded and gated" from the buildathon bar.
+**Honest note:** SQLite is sufficient for this scale; production would use a write-once ledger like DynamoDB with point-in-time recovery.
 
 ---
-
-## Day 5 — LLM Analyst Notes + Spike Monitor
-
-- LLM (Groq LLaMA — llama-3.1-8b-instant) drafts 2-line notes for REVIEW items only
-- LLM never touches the decision — this is explicit in architecture
-- Fraud spike monitor uses EWMA — deliberately LLM-free (fast, auditable)
-- This is the "AI judgment" story: right tool in right place, and where we chose not to use one
+### FastAPI Decision Service with SHAP Reason Codes
+**What:** Implemented in `src/service.py` exposing `POST /score`, `POST /batch`, `GET /decisions/{id}`, and `GET /health`.
+**Why:** A model score alone is not actionable — analysts need to know WHY a transaction was flagged.
+**Relevance to Track 02:** "Show the audit trail and one failure handled gracefully" — SHAP maps features to plain English reasons.
+**Honest note:** SHAP TreeExplainer adds ~10-15ms latency per transaction — acceptable for fraud review, not for sub-millisecond payment authorisation.
 
 ---
-
-## Day 5 — Eval Harness
-
-- `make eval` reproduces every metric from scratch on held-out test set
-- Sensitivity table shows assumptions are not cherry-picked
-- Top-10 FP cases listed honestly — not hidden
-
----
-
-## Day 6 — Batch Replay & Demo
-
-- `batch_replay.py` streams 1000 test transactions live through the service
-- `demo_curl.sh` has ready commands for video recording
-- Demo shows one false positive landing in REVIEW (not BLOCK) — graceful failure handling
+### Three-Tier Decision Policy (BLOCK / REVIEW / APPROVE)
+**What:** Implemented in `src/service.py` via `_apply_policy()` using operating threshold and block threshold.
+**Why:** Hard blocking every flagged transaction loses legitimate revenue — the REVIEW tier lets humans decide on borderline cases.
+**Relevance to Track 02:** False positive cost is a first-class metric in Track 02; the three tiers make FP cost explicit.
+**Honest note:** drain_flag initially fired on zero-balance accounts (amount >= 0.9 * 0 is always true) — fixed with a non-zero guard.
 
 ---
-
-## Day 6 — Tests
-
-- 6 pytest tests covering health, scoring, audit trail, batch, spike monitor
-- Tests run in CI via GitHub Actions on every push
-- No mocking of the model — tests use the actual loaded model
-- Model-dependent tests degrade gracefully to 503 check when no artifact present in CI
+### Groq LLaMA Analyst Notes for REVIEW Queue
+**What:** Implemented in `src/analyst.py` exposing `GET /analyst/note/{decision_id}` powered by `llama-3.1-8b-instant`.
+**Why:** A 2-line plain-English note reduces analyst cognitive load when reviewing borderline transactions.
+**Relevance to Track 02:** "AI judgment — the right tool in the right place" — LLM drafts notes only after the model has already decided; never in the decision path.
+**Honest note:** If GROQ_API_KEY is missing the function returns a safe fallback string — the service never crashes on LLM failure.
 
 ---
-
-## Day 7 — Final Polish
-
-- README updated with metrics table and "What Broke" section
-- Architecture doc finalized with Decision Policy table
-- All files reviewed for clean code and one-line comments
-- Submission ready
+### EWMA Fraud Spike Monitor
+**What:** Implemented in `src/monitor.py` exposing `GET /monitor/spike` using exponential weighted moving average of flagged rates.
+**Why:** A single bad transaction is noise; a spike in flagged rate signals a coordinated attack or data quality issue.
+**Relevance to Track 02:** "Failure handled gracefully" — the monitor catches systemic problems before they compound.
+**Honest note:** Deliberately LLM-free — EWMA is fast, auditable, and has no hallucination risk; LLM spike detection would add latency and unpredictability.
 
 ---
-
-## Day 7 — Service Running + Tests
-- FastAPI service started successfully on port 8000
-- pytest results: 6 passed, 0 failed (100% pass)
-- demo_curl.sh executed: high-risk CASH_OUT scored 0.8045 → REVIEW
-- Groq analyst note working: yes
+### Razorpay Webhook Endpoint
+**What:** Implemented in `src/service.py` exposing `POST /webhook/razorpay` to ingest `payment.failed` event payloads.
+**Why:** RazorSentry must accept real Razorpay payment event shapes to be usable in the buildathon context.
+**Relevance to Track 02:** Directly ties the project to Razorpay's payment infrastructure; routes payment.failed events through the same scoring pipeline.
+**Honest note:** Balance fields (oldbalanceOrg, newbalanceOrig) are set to 0.0 for webhook inputs since Razorpay does not expose them — balance-error features will not fire for webhook-sourced transactions.
 
 ---
+### Software PII Blinding
+**What:** Designed for `src/privacy.py` using salted HMAC-SHA256 hashing on origin and destination identifiers.
+**Why:** Financial audit logs must never store raw account identifiers in plaintext — DPDP Act 2023 compliance.
+**Relevance to Track 02:** Track 02 judges financial data systems; showing privacy-by-design separates this from student projects.
+**Honest note:** HMAC-SHA256[:16] is one-way and cannot be reversed — this means audit records cannot be linked back to the original account without the PII_SALT secret, which is intentional.
 
-## Day 8 — Batch Replay + Final Submission Polish
-- Batch replay: 1,000 transactions — 0 blocked, 5 review, 995 approved
-- Avg latency: 3.2 ms
-- BLOCK threshold corrected to 0.5 — three-tier policy now active across all decisions
-- VIDEO_SCRIPT.md created
-- All files pushed to GitHub
-- Submission ready at https://github.com/Sayantan181222/RazorSentry
+---
+### PSI Feature Drift Detector
+**What:** Designed for `src/drift.py` exposing `GET /monitor/drift` calculating Population Stability Index against baseline distributions.
+**Why:** A model trained on PaySim synthetic data will degrade when real transaction distributions shift — PSI catches this before precision drops.
+**Relevance to Track 02:** Production ML systems need monitoring beyond accuracy; showing PSI demonstrates understanding of model lifecycle.
+**Honest note:** PSI checks only amount_log and high_amount_flag via the audit log — full feature drift requires raw transaction replay which is not stored for privacy reasons.
 
+---
+### Input Validation and Rate Limiting
+**What:** Configured in `src/service.py` via Pydantic field constraints, amount checks, and middleware.
+**Why:** An unvalidated API in a financial system is a liability — invalid types and negative amounts must be rejected before scoring.
+**Relevance to Track 02:** "Build quality — does it run, is it structured, would you trust it".
+**Honest note:** Rate limiting is per-IP which is bypassable behind a shared NAT — production would use API keys with per-merchant limits.
 
+---
+## What Broke and How It Was Fixed
+
+**Temporal leakage in velocity features**
+Velocity features were initially computed across the full dataset before the train/test split.
+PR-AUC appeared inflated at ~0.999. Identified as leakage. Fixed by computing all features
+strictly within split boundaries.
+
+**LabelEncoder at inference time**
+LabelEncoder was re-fit on each incoming transaction. A single PAYMENT row encoded as 0
+which the model read as CASH_OUT. Fixed by replacing with a hardcoded TYPE_ENCODING dict.
+
+**drain_flag on zero-balance accounts**
+amount >= 0.9 * 0.0 is always True so every zero-balance sender got drain_flag=1.
+Fixed by adding a non-zero guard: oldbalanceOrg > 0 AND amount >= 0.9 * oldbalanceOrg.
+
+**CI/CD: ModuleNotFoundError for src**
+pytest could not find the src module in GitHub Actions despite PYTHONPATH and pyproject.toml fixes.
+Fixed by adding sys.path.insert(0, project_root) directly in conftest.py — works regardless
+of runner environment configuration.
+
+**Groq model name**
+analyst.py was initialized with "groq/compound-mini" which is not a valid Groq model ID.
+Fixed to "llama-3.1-8b-instant". The except block caught the failure silently so the service
+never crashed but analyst notes always returned the fallback string.

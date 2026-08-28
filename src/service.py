@@ -61,7 +61,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="RazorSentry", version="1.0.0", lifespan=lifespan)
 
 
-# Pydantic schema for a single incoming transaction
 class TransactionInput(BaseModel):
     transaction_id: str
     step: int
@@ -75,7 +74,6 @@ class TransactionInput(BaseModel):
     newbalanceDest: float
 
 
-# Razorpay webhook payload shape — matches Razorpay's published payment.failed event schema
 class RazorpayWebhookPayload(BaseModel):
     entity: str = "event"
     account_id: str
@@ -84,7 +82,6 @@ class RazorpayWebhookPayload(BaseModel):
     payload: dict
 
 
-# Pydantic schema for a single scoring response
 class ScoreResponse(BaseModel):
     decision_id: str
     transaction_id: str
@@ -95,7 +92,6 @@ class ScoreResponse(BaseModel):
     model_version: str
 
 
-# Pydantic schema for the batch endpoint summary block
 class BatchSummary(BaseModel):
     total: int
     blocked: int
@@ -103,7 +99,6 @@ class BatchSummary(BaseModel):
     approved: int
 
 
-# Pydantic schema for the batch endpoint response
 class BatchResponse(BaseModel):
     results: list[ScoreResponse]
     summary: BatchSummary

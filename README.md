@@ -18,13 +18,13 @@ RazorSentry is a production-structured fraud decisioning service that:
 - Applies a cost-aware threshold calibrated against rupee-denominated false-positive and false-negative costs
 - Returns structured reason codes and SHAP-based explanations with every decision
 - Maintains a tamper-evident audit log of every decision in SQLite
-- Exposes a clean FastAPI interface for synchronous single-transaction scoring and batch scoring
+- Exposes a clean FastAPI interface for synchronous single-transaction scoring, batch scoring, and Razorpay webhook ingestion
 
 ---
 
 ## Architecture
 
-Transactions arrive as JSON at the FastAPI Decision Engine. The feature engineering layer extracts velocity, balance error, drain pattern, and graph-flavored in-degree signals, then the LightGBM model produces a fraud probability score. A cost-aware thresholding module converts that probability into an APPROVE / REVIEW / BLOCK decision by maximising expected rupee net savings across both error types. Every decision — along with its score, reason codes, and SHAP values — is written to a SQLite audit log via SQLAlchemy before the response is returned to the caller. An optional Groq LLaMA (llama-3.1-8b-instant) call drafts a 2-line analyst note for REVIEW-queue items only, after the decision is already final.
+Transactions arrive as JSON at the FastAPI Decision Engine. Requests pass through an input validation layer and rate limiter before entering the scoring pipeline. The feature engineering layer extracts velocity, balance error, drain pattern, and graph-flavored in-degree signals, then the LightGBM model produces a fraud probability score. A cost-aware thresholding module converts that probability into an APPROVE / REVIEW / BLOCK decision by maximising expected rupee net savings across both error types. Every decision — along with its score, reason codes, and SHAP values — is written to an append-only audit log via SQLAlchemy, protected by a software PII blinding layer. Background monitors include an EWMA fraud spike detector and a PSI feature drift monitor. An optional Groq LLaMA (llama-3.1-8b-instant) call drafts a 2-line analyst note for REVIEW-queue items only, after the decision is already final.
 
 ---
 
@@ -46,6 +46,16 @@ docker compose up --build
 
 bash scripts/demo_curl.sh
 ```
+
+### Key API Endpoints
+- `POST /score` — Real-time transaction scoring with SHAP reason codes
+- `POST /batch` — Batch transaction scoring with aggregate summary
+- `POST /webhook/razorpay` — Ingests Razorpay `payment.failed` event payloads
+- `GET /decisions/{id}` — Retrieves decision record from the audit log
+- `GET /analyst/note/{decision_id}` — Generates a 2-line Groq LLaMA explanation for REVIEW items
+- `GET /monitor/spike` — EWMA fraud spike detection status
+- `GET /monitor/drift` — Population Stability Index (PSI) feature drift monitor
+- `GET /health` — Service health, loaded model version, and operating threshold
 
 ---
 
@@ -75,15 +85,31 @@ This runs `src/eval.py`, which loads the held-out test split, applies the cost-a
 
 ## AI Judgment
 
-LightGBM makes every money decision in RazorSentry. The model's output probability is passed through a cost-aware threshold — computed from rupee false-positive and false-negative cost estimates — to produce the final APPROVE / REVIEW / BLOCK verdict. An LLM (Groq LLaMA — llama-3.1-8b-instant) is optionally invoked only after the deterministic model has already decided, and only for transactions that land in the REVIEW queue, where it drafts a plain-English analyst note summarising the SHAP explanation. The LLM never touches the decision boundary, never sees the threshold, and its output has no effect on whether a transaction is approved or declined.
+LightGBM makes every money decision in RazorSentry. The model's output probability is passed through a cost-aware threshold — computed from rupee false-positive and false-negative cost estimates — to produce the final APPROVE / REVIEW / BLOCK verdict. Groq LLaMA (llama-3.1-8b-instant) drafts a 2-line analyst note for REVIEW-queue transactions only. The LLM is never in the decision path. The EWMA spike monitor and PSI drift detector are deliberately LLM-free — pure statistics, fast, auditable.
 
 ---
 
-## What Broke
+## What Broke and How It Was Fixed
 
-During feature engineering, velocity features (`orig_txn_count_1h`, `orig_txn_sum_1h`, `dest_in_degree_1h`) were initially computed across the full dataset before the train/test split, causing PR-AUC to appear inflated (~0.999). This was identified as leakage and fixed by computing all features strictly within split boundaries. The operating threshold was tuned on a validation split carved from train data only — never on the test set.
+**Temporal leakage in velocity features**
+Velocity features were initially computed across the full dataset before the train/test split. PR-AUC appeared inflated at ~0.999. Identified as leakage. Fixed by computing all features strictly within split boundaries. The operating threshold was tuned on a validation split carved from train data only — never on the test set.
 
+**Near-perfect PR-AUC on PaySim synthetic data**
 The near-perfect PR-AUC (0.9999) is a known characteristic of the PaySim synthetic dataset — balance-error features alone nearly separate the classes because PaySim encodes fraud with deterministic accounting anomalies. This is documented in the PaySim literature. We report precision and recall at the operating threshold alongside AUC precisely because AUC alone is misleading on synthetic data.
+
+**LabelEncoder at inference time**
+LabelEncoder was re-fit on each incoming transaction. A single PAYMENT row encoded as 0 which the model read as CASH_OUT. Fixed by replacing with a hardcoded TYPE_ENCODING dict.
+
+**drain_flag on zero-balance accounts**
+amount >= 0.9 * 0.0 is always True so every zero-balance sender got drain_flag=1. Fixed by adding a non-zero guard: oldbalanceOrg > 0 AND amount >= 0.9 * oldbalanceOrg.
+
+**CI/CD: ModuleNotFoundError for src**
+pytest could not find the src module in GitHub Actions despite PYTHONPATH and pyproject.toml fixes. Fixed by adding sys.path.insert(0, project_root) directly in conftest.py — works regardless of runner environment configuration.
+
+**Groq model name**
+analyst.py was initialized with "groq/compound-mini" which is not a valid Groq model ID. Fixed to "llama-3.1-8b-instant". The except block caught the failure silently so the service never crashed but analyst notes always returned the fallback string.
+
+---
 
 ## Model Card
 

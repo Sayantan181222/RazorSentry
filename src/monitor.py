@@ -1,6 +1,4 @@
 # Fraud spike detection uses EWMA — deliberately LLM-free for speed and auditability
-
-# pyrefly: ignore [missing-import]
 import numpy as np
 
 BASELINE_FRAUD_RATE = 0.02

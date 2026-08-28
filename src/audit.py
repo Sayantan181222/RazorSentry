@@ -3,9 +3,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-# pyrefly: ignore [missing-import]
 from sqlalchemy import Column, DateTime, Float, String, create_engine, text
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///razorsentry.db")
@@ -18,7 +16,6 @@ class Base(DeclarativeBase):
     pass
 
 
-# ORM model representing a single immutable fraud decision row in the audit table
 class DecisionRecord(Base):
     __tablename__ = "decisions"
 

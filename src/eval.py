@@ -22,7 +22,7 @@ MODEL_PATH = os.getenv("MODEL_PATH", "models/lgbm_model.pkl")
 THRESHOLD_PATH = os.getenv("THRESHOLD_PATH", "models/threshold.txt")
 REPORTS_DIR = os.getenv("REPORTS_DIR", "reports")
 
-BLOCK_THRESHOLD = 0.9
+BLOCK_THRESHOLD = 0.5
 FP_COST_DEFAULT = 150.0
 FP_COST_SENSITIVITY = [50.0, 150.0, 300.0]
 
