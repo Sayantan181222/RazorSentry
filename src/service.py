@@ -12,8 +12,11 @@ import numpy as np
 import pandas as pd
 # pyrefly: ignore [missing-import]
 import shap
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel, field_validator
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from src.analyst import generate_analyst_note
 from src.audit import get_decision, get_recent_decisions, init_db, log_decision
@@ -63,7 +66,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# Rate limiter — 60 score requests per minute per IP
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
 app = FastAPI(title="RazorSentry", version="1.0.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 class TransactionInput(BaseModel):
@@ -77,6 +85,30 @@ class TransactionInput(BaseModel):
     nameDest: str
     oldbalanceDest: float
     newbalanceDest: float
+
+    model_config = {"str_strip_whitespace": True}
+
+    @field_validator("amount")
+    @classmethod
+    def amount_must_be_positive(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("amount must be non-negative")
+        return v
+
+    @field_validator("type")
+    @classmethod
+    def type_must_be_valid(cls, v: str) -> str:
+        valid = {"CASH_IN", "CASH_OUT", "DEBIT", "PAYMENT", "TRANSFER"}
+        if v.upper() not in valid:
+            raise ValueError(f"type must be one of {valid}")
+        return v.upper()
+
+    @field_validator("step")
+    @classmethod
+    def step_must_be_positive(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("step must be >= 1")
+        return v
 
 
 class RazorpayWebhookPayload(BaseModel):
@@ -187,7 +219,8 @@ def health() -> dict:
 
 # Scores a single transaction and writes the decision to the audit log
 @app.post("/score", response_model=ScoreResponse)
-def score(tx: TransactionInput) -> ScoreResponse:
+@limiter.limit("60/minute")
+def score(request: Request, tx: TransactionInput) -> ScoreResponse:
     if _model is None:
         raise HTTPException(status_code=503, detail="Model not loaded — run src/train.py first")
     return _score_transaction(tx)
@@ -195,7 +228,8 @@ def score(tx: TransactionInput) -> ScoreResponse:
 
 # Scores a batch of transactions sequentially and returns results with a summary
 @app.post("/batch", response_model=BatchResponse)
-def batch(transactions: list[TransactionInput]) -> BatchResponse:
+@limiter.limit("10/minute")
+def batch(request: Request, transactions: list[TransactionInput]) -> BatchResponse:
     if _model is None:
         raise HTTPException(status_code=503, detail="Model not loaded — run src/train.py first")
     results = [_score_transaction(tx) for tx in transactions]

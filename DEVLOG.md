@@ -114,3 +114,14 @@ of runner environment configuration.
 analyst.py was initialized with "groq/compound-mini" which is not a valid Groq model ID.
 Fixed to "llama-3.1-8b-instant". The except block caught the failure silently so the service
 never crashed but analyst notes always returned the fallback string.
+
+---
+
+## Day 9 — Production Hardening
+- PII blinding: HMAC-SHA256 hashes account IDs before audit log storage
+- Isotonic calibration: probability scores now interpretable, threshold corrected
+- PSI drift detector: monitors feature distribution shift from training baseline
+- Input validation: Pydantic validators reject invalid types, negative amounts, bad steps
+- Rate limiting: 60 req/min on /score, 10 req/min on /batch via slowapi
+- All changes tested and pushed
+

@@ -159,3 +159,23 @@ async def test_monitor_drift(client: AsyncClient):
     assert "drift_checked" in data
 
 
+# Tests that invalid transaction type is rejected with 422
+@pytest.mark.anyio
+async def test_invalid_type_rejected(client: AsyncClient):
+    bad_txn = {
+        "transaction_id": "txn_bad_001",
+        "step": 1,
+        "type": "INVALID_TYPE",
+        "amount": 500.0,
+        "nameOrig": "C111111111",
+        "oldbalanceOrg": 10000.0,
+        "newbalanceOrig": 9500.0,
+        "nameDest": "M999999999",
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 0.0,
+    }
+    response = await client.post("/score", json=bad_txn)
+    assert response.status_code == 422
+
+
+
