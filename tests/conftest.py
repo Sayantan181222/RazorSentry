@@ -5,6 +5,7 @@ from httpx import ASGITransport, AsyncClient
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///test_razorsentry.db")
 
+# pyrefly: ignore [missing-import]
 from src.service import app, lifespan
 
 
