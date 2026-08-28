@@ -24,7 +24,7 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **What:** Implemented in `src/train.py` comparing a heuristic rule baseline against LightGBM optimized for net rupee savings.
 **Why:** Rules alone catch 49.7% of fraud at 12.4% precision; the model catches 100% at 90.5% precision.
 **Relevance to Track 02:** Track 02 bar requires measured precision and recall on a held-out test set.
-**Honest note:** Operating threshold of 0.02 emerged from rupee cost sweep — isotonic calibration is planned to make this more interpretable.
+**Honest note:** Isotonic calibration (CalibratedClassifierCV) was applied post-training, moving operating threshold from 0.02 to an interpretable 0.35.
 
 ---
 ### Append-Only Audit Log

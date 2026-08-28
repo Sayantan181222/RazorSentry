@@ -65,10 +65,10 @@ Run `make eval` to populate these from the held-out test set.
 
 | Metric | Value |
 |---|---|
-| PR-AUC | 1.0000 |
-| Precision at operating threshold | 0.9053 (90.53%) |
-| Recall at operating threshold | 1.0000 (100.00%) |
-| Net Savings (INR) | ₹1,954,017,248.24 |
+| PR-AUC | 0.9999 |
+| Precision at operating threshold | 1.0000 (100.00%) |
+| Recall at operating threshold | 0.9998 (99.98%) |
+| Net Savings (INR) | ₹1,953,623,413.78 |
 | False Positive Cost Assumption | ₹150/txn |
 
 ---
@@ -120,11 +120,12 @@ analyst.py was initialized with "groq/compound-mini" which is not a valid Groq m
 | **Fraud rate (test)** | ~4.18% — fraud concentrated in later time steps as expected |
 | **Features used** | balance_error_orig, balance_error_dest, drain_flag, zero_orig_after, type_encoded, amount_log, orig_txn_count_1h, orig_txn_sum_1h, dest_in_degree_1h, high_amount_flag |
 | **Model** | LightGBM with scale_pos_weight for class imbalance |
+| **Calibration** | Isotonic calibration (CalibratedClassifierCV) applied post-training for interpretable probability scores |
 | **Threshold selection** | Cost-aware rupee net-savings sweep on validation split — not F1, not test set |
-| **Operating threshold** | 0.02 (model is well-separated; low threshold catches all fraud at high precision) |
+| **Operating threshold** | 0.35 (calibrated probabilities — optimal threshold on rupee net savings) |
 | **PR-AUC** | 0.9999 (expected on PaySim — synthetic balance-error features nearly perfectly separate classes) |
-| **Precision @ threshold** | 0.905 |
-| **Recall @ threshold** | 1.000 |
+| **Precision @ threshold** | 1.000 |
+| **Recall @ threshold** | 0.9998 |
 | **False positive cost** | ₹150 per transaction (review cost assumption) |
 | **Net savings (test set)** | ₹1.95 Cr across 101,643 test transactions |
 

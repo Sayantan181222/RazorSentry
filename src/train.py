@@ -8,6 +8,7 @@ import mlflow.lightgbm
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
     confusion_matrix,
@@ -109,8 +110,30 @@ def train_lgbm(
     return model, X_val, y_val
 
 
+# Wraps the trained LightGBM model with isotonic calibration for interpretable probabilities
+def calibrate_model(model, X_val: pd.DataFrame, y_val: pd.Series):
+    calibrated = CalibratedClassifierCV(model, method="isotonic", cv="prefit")
+    calibrated.fit(X_val, y_val)
+    return calibrated
+
+
+# Plots reliability diagram comparing predicted probabilities to actual fraction positive
+def plot_calibration_curve(model, X_test: pd.DataFrame, y_test: pd.Series, save_path: str) -> None:
+    prob_true, prob_pred = calibration_curve(y_test, model.predict_proba(X_test)[:, 1], n_bins=10)
+    plt.figure(figsize=(6, 6))
+    plt.plot(prob_pred, prob_true, marker="o", label="RazorSentry")
+    plt.plot([0, 1], [0, 1], linestyle="--", label="Perfect calibration")
+    plt.xlabel("Mean predicted probability")
+    plt.ylabel("Fraction of positives")
+    plt.title("Calibration Curve")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+
 # Saves the trained model to disk using pickle
-def save_model(model: LGBMClassifier, path: str) -> None:
+def save_model(model, path: str) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "wb") as f:
         pickle.dump(model, f)
@@ -252,6 +275,7 @@ def main() -> None:
 
         print("Training LightGBM ...")
         model, X_val, y_val = train_lgbm(X_train, y_train, spw)
+        model = calibrate_model(model, X_val, y_val)
 
         val_prob = model.predict_proba(X_val)[:, 1]
         val_pr_auc = float(average_precision_score(y_val, val_prob))
@@ -315,6 +339,7 @@ def main() -> None:
         plot_pr_curve(y_test.values, y_prob, test_pr_auc, REPORTS_DIR)
         plot_cost_curve(savings_list, REPORTS_DIR)
         plot_confusion_matrix(y_test.values, y_pred_final, REPORTS_DIR)
+        plot_calibration_curve(model, X_test, y_test, os.path.join(REPORTS_DIR, "calibration_curve.png"))
         mlflow.log_artifacts(REPORTS_DIR)
 
         print("Saving top FP cases ...")

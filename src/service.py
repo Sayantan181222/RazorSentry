@@ -10,6 +10,7 @@ load_dotenv()
 # pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
+# pyrefly: ignore [missing-import]
 import shap
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -52,7 +53,8 @@ async def lifespan(app: FastAPI):
     if os.path.exists(MODEL_PATH):
         with open(MODEL_PATH, "rb") as f:
             _model = pickle.load(f)
-        _explainer = shap.TreeExplainer(_model)
+        tree_model = _model.estimator if hasattr(_model, "estimator") else (_model.calibrated_classifiers_[0].estimator if hasattr(_model, "calibrated_classifiers_") else _model)
+        _explainer = shap.TreeExplainer(tree_model)
     if os.path.exists(THRESHOLD_PATH):
         with open(THRESHOLD_PATH, "r") as f:
             _operating_threshold = float(f.read().strip())

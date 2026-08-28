@@ -1,22 +1,22 @@
 {
-  "operating_threshold": 0.02,
-  "pr_auc": 0.9999788274468245,
-  "precision": 0.9052901023890785,
-  "recall": 1.0,
-  "f1": 0.9502910882221227,
-  "false_positives": 444,
-  "false_positive_rate": 0.004559,
-  "false_negatives": 0,
-  "true_positives": 4244,
-  "true_negatives": 96955,
-  "net_savings_inr": 1954017248.24,
+  "operating_threshold": 0.35000000000000003,
+  "pr_auc": 0.9998856147458933,
+  "precision": 1.0,
+  "recall": 0.9997643732327992,
+  "f1": 0.9998821727347709,
+  "false_positives": 0,
+  "false_positive_rate": 0.0,
+  "false_negatives": 1,
+  "true_positives": 4243,
+  "true_negatives": 97399,
+  "net_savings_inr": 1953623413.78,
   "avg_fraud_loss_inr": 460434.46,
   "fp_cost_per_txn_inr": 150.0,
   "total_test_txns": 101643,
   "total_test_frauds": 4244,
   "decision_counts": {
-    "BLOCK": 0,
-    "REVIEW": 4688,
-    "APPROVE": 96955
+    "BLOCK": 4243,
+    "REVIEW": 0,
+    "APPROVE": 97400
   }
 }
