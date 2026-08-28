@@ -13,17 +13,17 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-# Import app only — not lifespan — so CI does not crash without a trained model
-from src.service import app
+from src.service import app, lifespan
 
 
 # Provides an async test client wired directly to the FastAPI app
 @pytest.fixture
 async def client():
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        yield ac
+    async with lifespan(app):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
+            yield ac
 
 
 # Returns True if the trained model artifact exists on disk

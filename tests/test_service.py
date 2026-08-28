@@ -1,4 +1,5 @@
 import os
+# pyrefly: ignore [missing-import]
 import pytest
 from httpx import AsyncClient
 
@@ -41,8 +42,11 @@ async def test_health(client: AsyncClient):
 
 # Tests that the score endpoint returns a valid response structure
 @pytest.mark.anyio
-async def test_score_returns_structure(client: AsyncClient):
+async def test_score_returns_structure(client: AsyncClient, model_available: bool):
     response = await client.post("/score", json=FRAUD_TXN)
+    if not model_available:
+        assert response.status_code == 503
+        return
     assert response.status_code == 200
     data = response.json()
     assert "decision" in data
@@ -53,8 +57,11 @@ async def test_score_returns_structure(client: AsyncClient):
 
 # Tests that a batch of transactions returns correct count and summary
 @pytest.mark.anyio
-async def test_batch_returns_summary(client: AsyncClient):
+async def test_batch_returns_summary(client: AsyncClient, model_available: bool):
     response = await client.post("/batch", json=[FRAUD_TXN, LEGIT_TXN])
+    if not model_available:
+        assert response.status_code == 503
+        return
     assert response.status_code == 200
     data = response.json()
     assert "results" in data
@@ -64,7 +71,9 @@ async def test_batch_returns_summary(client: AsyncClient):
 
 # Tests that audit trail returns a record after scoring
 @pytest.mark.anyio
-async def test_audit_trail(client: AsyncClient):
+async def test_audit_trail(client: AsyncClient, model_available: bool):
+    if not model_available:
+        pytest.skip("Model not available in CI environment")
     score_resp = await client.post("/score", json=LEGIT_TXN)
     assert score_resp.status_code == 200
     decision_id = score_resp.json()["decision_id"]
@@ -85,7 +94,7 @@ async def test_monitor_spike(client: AsyncClient):
 
 # Tests that the webhook endpoint accepts a Razorpay-shaped payload
 @pytest.mark.anyio
-async def test_razorpay_webhook(client: AsyncClient):
+async def test_razorpay_webhook(client: AsyncClient, model_available: bool):
     payload = {
         "entity": "event",
         "account_id": "acc_test123",
@@ -105,6 +114,9 @@ async def test_razorpay_webhook(client: AsyncClient):
         },
     }
     response = await client.post("/webhook/razorpay", json=payload)
+    if not model_available:
+        assert response.status_code == 503
+        return
     assert response.status_code == 200
     data = response.json()
     assert "razorsentry_decision" in data
