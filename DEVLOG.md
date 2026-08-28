@@ -109,6 +109,7 @@ Fixed by adding a non-zero guard: oldbalanceOrg > 0 AND amount >= 0.9 * oldbalan
 pytest could not find the src module in GitHub Actions despite PYTHONPATH and pyproject.toml fixes.
 Fixed by adding sys.path.insert(0, project_root) directly in conftest.py — works regardless
 of runner environment configuration.
+Also by adding the __init__.py file to the tests directory.
 
 **Groq model name**
 analyst.py was initialized with "groq/compound-mini" which is not a valid Groq model ID.

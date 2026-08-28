@@ -151,7 +151,7 @@ analyst.py was initialized with "groq/compound-mini" which is not a valid Groq m
 
 ## Track
 
-**AI Risk Manager — Track 02, Razorpay Buildathon 2025**
+**AI Risk Manager — Track 02, Razorpay Buildathon 2026**
 
 ---
 
