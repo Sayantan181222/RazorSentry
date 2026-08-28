@@ -75,6 +75,15 @@ class TransactionInput(BaseModel):
     newbalanceDest: float
 
 
+# Razorpay webhook payload shape — matches Razorpay's published payment.failed event schema
+class RazorpayWebhookPayload(BaseModel):
+    entity: str = "event"
+    account_id: str
+    event: str
+    contains: list
+    payload: dict
+
+
 # Pydantic schema for a single scoring response
 class ScoreResponse(BaseModel):
     decision_id: str
@@ -196,6 +205,49 @@ def batch(transactions: list[TransactionInput]) -> BatchResponse:
         approved=sum(1 for r in results if r.decision == "APPROVE"),
     )
     return BatchResponse(results=results, summary=summary)
+
+
+# Maps Razorpay payment method strings to PaySim transaction type strings
+def _map_razorpay_method(method: str) -> str:
+    mapping = {
+        "card": "PAYMENT",
+        "netbanking": "TRANSFER",
+        "wallet": "CASH_OUT",
+        "upi": "PAYMENT",
+        "emi": "PAYMENT",
+    }
+    return mapping.get(method.lower(), "PAYMENT")
+
+
+# Accepts a Razorpay-shaped webhook and routes it through the fraud scoring pipeline
+@app.post("/webhook/razorpay")
+async def razorpay_webhook(webhook: RazorpayWebhookPayload):
+    try:
+        payment = webhook.payload.get("payment", {}).get("entity", {})
+        txn = TransactionInput(
+            transaction_id=payment.get("id", "rzp_unknown"),
+            step=1,
+            type=_map_razorpay_method(payment.get("method", "PAYMENT")),
+            amount=float(payment.get("amount", 0)) / 100,
+            nameOrig=payment.get("contact", "C_UNKNOWN"),
+            oldbalanceOrg=0.0,
+            newbalanceOrig=0.0,
+            nameDest=payment.get("email", "M_UNKNOWN"),
+            oldbalanceDest=0.0,
+            newbalanceDest=0.0,
+        )
+        if _model is None:
+            raise HTTPException(status_code=503, detail="Model not loaded — run src/train.py first")
+        result = _score_transaction(txn)
+        return {
+            "webhook_event": webhook.event,
+            "razorpay_payment_id": payment.get("id"),
+            "razorsentry_decision": result,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # Retrieves a past decision from the audit log by its UUID

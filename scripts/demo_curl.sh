@@ -70,6 +70,29 @@ echo "--- 7. Recent decisions (last 10) ---"
 curl -s -X GET "${BASE_URL}/decisions?limit=10" | python3 -m json.tool
 echo ""
 
+echo "=== Razorpay Webhook (payment.failed event) ==="
+curl -s -X POST http://localhost:8000/webhook/razorpay \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity": "event",
+    "account_id": "acc_test123",
+    "event": "payment.failed",
+    "contains": ["payment"],
+    "payload": {
+      "payment": {
+        "entity": {
+          "id": "pay_test_fraud001",
+          "amount": 18900000,
+          "method": "wallet",
+          "contact": "C999888777",
+          "email": "M_MERCHANT_001",
+          "status": "failed"
+        }
+      }
+    }
+  }' | python3 -m json.tool
+echo ""
+
 echo "============================================"
 echo " Demo complete."
 echo "============================================"
