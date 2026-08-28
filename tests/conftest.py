@@ -1,16 +1,16 @@
 import os
 import sys
 
-# Add project root to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Add project root to sys.path so src/ is importable in CI and locally
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.service import app, lifespan
+os.environ.setdefault("DATABASE_URL", "sqlite:///test_razorsentry.db")
 
-# pyrefly: ignore [missing-import]
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///test_razorsentry.db")
+from src.service import app, lifespan
+
 
 # Provides an async httpx client wired directly to the FastAPI app via ASGITransport
 @pytest.fixture
