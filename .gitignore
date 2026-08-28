@@ -9,3 +9,5 @@ data/*.csv
 data/*.parquet
 models/*.pkl
 models/*.joblib
+.pytest_cache/
+reports/batch_replay_results.csv

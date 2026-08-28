@@ -10,6 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      PYTHONPATH: .
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,6 +26,4 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
-        env:
-          PYTHONPATH: .
-        run: python -m pytest tests/ -v
+        run: pytest tests/ -v
