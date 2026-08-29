@@ -116,6 +116,12 @@ analyst.py was initialized with "groq/compound-mini" which is not a valid Groq m
 Fixed to "llama-3.1-8b-instant". The except block caught the failure silently so the service
 never crashed but analyst notes always returned the fallback string.
 
+**top_fp_cases.csv was empty despite 444 false positives**
+save_top_fp_cases used a hardcoded threshold of 0.5 to find false positives.
+The operating threshold is 0.02 so no legitimate transaction scored above 0.5
+on the well-separated PaySim data — the mask returned zero rows.
+Fixed by passing operating_threshold as a parameter to the function.
+
 ---
 
 ## Day 9 — Production Hardening

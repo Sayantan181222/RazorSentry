@@ -2,7 +2,9 @@ import json
 import os
 import pickle
 
+# pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
@@ -165,10 +167,11 @@ def save_top_fp_cases(
     y_true: np.ndarray,
     y_prob: np.ndarray,
     out_dir: str,
+    operating_threshold: float,
 ) -> None:
     df = test_df.copy().reset_index(drop=True)
     df["score"] = y_prob
-    fp_mask = (y_prob >= 0.5) & (y_true == 0)
+    fp_mask = (y_prob >= operating_threshold) & (y_true == 0)
     fp_df = df[fp_mask].nlargest(10, "score")
     cols_present = [c for c in TOP_FP_COLUMNS if c in fp_df.columns]
     fp_df[cols_present].to_csv(
@@ -291,7 +294,7 @@ def main() -> None:
     plot_confusion_matrix(y_true, y_pred_binary, REPORTS_DIR)
 
     print("Saving top FP cases ...")
-    save_top_fp_cases(test_df, y_true, y_prob, REPORTS_DIR)
+    save_top_fp_cases(test_df, y_true, y_prob, REPORTS_DIR, operating_threshold)
 
     print(f"\nAll reports written to {REPORTS_DIR}/")
     print("Done.")

@@ -222,17 +222,19 @@ def plot_confusion_matrix(
     plt.close()
 
 
-# Saves the top 10 false-positive cases by fraud score to a CSV for transparency
+# Saves the top 10 false-positive cases ranked by fraud score using the actual operating threshold
 def save_top_fp_cases(
     test_df: pd.DataFrame,
     y_true: np.ndarray,
     y_prob: np.ndarray,
     out_dir: str,
+    operating_threshold: float,
 ) -> None:
-    fp_mask = (y_prob >= 0.5) & (y_true == 0)
+    fp_mask = (y_prob >= operating_threshold) & (y_true == 0)
     fp_df = test_df.copy().reset_index(drop=True)
     fp_df["fraud_score"] = y_prob
-    fp_df = fp_df[fp_mask].nlargest(10, "fraud_score")
+    cols = [c for c in ["fraud_score", "amount", "type", "balance_error_orig", "dest_in_degree_1h", "drain_flag"] if c in fp_df.columns]
+    fp_df = fp_df[fp_mask][cols].nlargest(10, "fraud_score")
     fp_df.to_csv(os.path.join(out_dir, "top_fp_cases.csv"), index=False)
 
 
@@ -346,7 +348,7 @@ def main() -> None:
         mlflow.log_artifacts(REPORTS_DIR)
 
         print("Saving top FP cases ...")
-        save_top_fp_cases(test_df, y_test.values, y_prob, REPORTS_DIR)
+        save_top_fp_cases(test_df, y_test.values, y_prob, REPORTS_DIR, operating_threshold)
 
         print("\n=== Final Metrics ===")
         print(json.dumps(final_metrics, indent=2))
