@@ -2,7 +2,7 @@
 Author: Sayantan Mandal, Gati Shakti Vishwavidyalaya
 Track: AI Risk Manager — Track 02, Razorpay Buildathon
 
-> Entries are feature-by-feature, not day-by-day.
+> Entries are feature-by-feature.
 > Each entry explains what was built, why, and the honest tradeoff.
 
 ---
@@ -73,7 +73,7 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **What:** Designed for `src/privacy.py` using salted HMAC-SHA256 hashing on origin and destination identifiers.
 **Why:** Financial audit logs must never store raw account identifiers in plaintext — DPDP Act 2023 compliance.
 **Relevance to Track 02:** Track 02 judges financial data systems; showing privacy-by-design separates this from student projects.
-**Honest note:** HMAC-SHA256[:16] is one-way and cannot be reversed — this means audit records cannot be linked back to the original account without the PII_SALT secret, which is intentional.
+**Honest note:** HMAC-SHA256[:16] is one-way and cannot be reversed — this means audit records cannot be linked back to the original account without the PII_SALT secret, which is intentional. Verification confirmed: API response returns original ID to caller, DB stores only the 16-char HMAC hash — correct behaviour by design.
 
 ---
 ### PSI Feature Drift Detector
@@ -129,9 +129,16 @@ The operating threshold is much lower so no legitimate transaction scored above 
 on well-separated PaySim data — the mask returned zero rows and the CSV had only headers.
 Fixed by passing operating_threshold as a parameter so the mask uses the actual decision boundary.
 
+**Audit log contained 2006 unblinded records from pre-privacy runs**
+Records written before src/privacy.py was integrated stored raw transaction IDs
+in plaintext. The blinding code was correctly wired in service.py at line 185
+but old records persisted. Confirmed blinding works on new records:
+SENSITIVE_ACCOUNT_99999 stored as 2e10c17cfbb44f3d in the DB.
+Fixed by deleting all records where length(transaction_id) != 16.
+
 ---
 
-## Day 9 — Production Hardening
+## Production Hardening
 - PII blinding: HMAC-SHA256 hashes account IDs before audit log storage
 - Isotonic calibration: probability scores now interpretable, threshold corrected
 - PSI drift detector: monitors feature distribution shift from training baseline
