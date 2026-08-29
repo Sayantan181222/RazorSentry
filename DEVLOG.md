@@ -90,6 +90,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** Rate limiting is per-IP which is bypassable behind a shared NAT — production would use API keys with per-merchant limits.
 
 ---
+### Full Pipeline Rerun + PII Blinding Verification
+**What:** Reran train.py and eval.py after calibration and PII blinding were added, verified blinding works correctly end to end
+**Why:** Calibration changes the model internals so all downstream metrics needed to be regenerated from scratch
+**Relevance to Track 02:** Honest metrics — all numbers in the repo reflect the current model not a stale run
+**Honest note:** top_fp_cases.csv was silently empty due to a hardcoded threshold — caught and fixed during this rerun
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**
@@ -116,11 +123,11 @@ analyst.py was initialized with "groq/compound-mini" which is not a valid Groq m
 Fixed to "llama-3.1-8b-instant". The except block caught the failure silently so the service
 never crashed but analyst notes always returned the fallback string.
 
-**top_fp_cases.csv was empty despite 444 false positives**
-save_top_fp_cases used a hardcoded threshold of 0.5 to find false positives.
-The operating threshold is 0.02 so no legitimate transaction scored above 0.5
-on the well-separated PaySim data — the mask returned zero rows.
-Fixed by passing operating_threshold as a parameter to the function.
+**top_fp_cases.csv was empty despite false positives existing**
+save_top_fp_cases used a hardcoded threshold of 0.5 to build the false positive mask.
+The operating threshold is much lower so no legitimate transaction scored above 0.5
+on well-separated PaySim data — the mask returned zero rows and the CSV had only headers.
+Fixed by passing operating_threshold as a parameter so the mask uses the actual decision boundary.
 
 ---
 
