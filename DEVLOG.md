@@ -104,6 +104,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** psycopg2-binary is used instead of psycopg2 for easier installation — production deployments would compile psycopg2 from source for better performance. The /ready endpoint separates liveness from readiness which is required for Kubernetes but also useful here to ensure Docker does not route traffic before the model is loaded
 
 ---
+### Multiple Uvicorn Workers
+**What:** Changed Dockerfile CMD to run 4 uvicorn worker processes behind a single port, added memory limits and a Docker healthcheck on /ready
+**Why:** A single uvicorn process uses one CPU core regardless of how many cores the machine has. With 4 workers, 4 transactions can be scored simultaneously instead of sequentially. Each worker loads its own copy of the model in memory
+**Relevance to Track 02:** Razorpay's peak load is 400-800 transactions per second. A single-worker service handling 20-30 per second is a demo, not a product. Four workers pushes this to 80-120 per second on a standard machine, and the architecture scales linearly by adding more workers or more machines
+**Honest note:** Each worker loads the 150MB LightGBM model independently into memory so 4 workers use roughly 600MB just for the model. Production would use a model server like Triton that loads the model once and serves all workers from a shared memory space. That is out of scope here but noted for the HLD
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**
