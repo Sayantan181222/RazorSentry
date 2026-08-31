@@ -40,6 +40,18 @@ async def test_health(client: AsyncClient):
     assert "model_version" in data
 
 
+# Tests that the ready endpoint returns readiness status
+@pytest.mark.anyio
+async def test_ready(client: AsyncClient, model_available: bool):
+    response = await client.get("/ready")
+    if model_available:
+        assert response.status_code == 200
+        assert response.json()["ready"] is True
+    else:
+        assert response.status_code == 503
+        assert response.json()["detail"]["ready"] is False
+
+
 # Tests that the score endpoint returns a valid response structure
 @pytest.mark.anyio
 async def test_score_returns_structure(client: AsyncClient, model_available: bool):

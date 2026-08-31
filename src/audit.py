@@ -3,12 +3,32 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Float, String, create_engine, text
+from sqlalchemy import Column, DateTime, Float, String, create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import QueuePool
 
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///razorsentry.db")
 
-engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
+IS_SQLITE = DB_URL.startswith("sqlite")
+
+if IS_SQLITE:
+    engine = create_engine(
+        DB_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=QueuePool,
+        pool_size=5,
+        max_overflow=10,
+    )
+else:
+    engine = create_engine(
+        DB_URL,
+        poolclass=QueuePool,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        pool_recycle=300,
+    )
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
@@ -80,6 +100,9 @@ def log_decision(
     try:
         db.add(record)
         db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
     return decision_id
@@ -110,3 +133,14 @@ def get_recent_decisions(limit: int = 50) -> list[dict]:
         return [_record_to_dict(r) for r in records]
     finally:
         db.close()
+
+
+# Checks if the database is reachable and returns True if healthy
+def check_db_health() -> bool:
+    try:
+        db: Session = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        return True
+    except Exception:
+        return False

@@ -1,6 +1,8 @@
 .env
 .venv/
 *.db
+*.db-journal
+test_razorsentry.db
 mlruns/
 __pycache__/
 *.pyc
@@ -9,5 +11,7 @@ data/*.csv
 data/*.parquet
 models/*.pkl
 models/*.joblib
+reports/*.png
+reports/*.json
+reports/*.csv
 .pytest_cache/
-reports/batch_replay_results.csv

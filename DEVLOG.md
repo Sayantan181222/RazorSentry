@@ -97,6 +97,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** top_fp_cases.csv was silently empty due to a hardcoded threshold — caught and fixed during this rerun
 
 ---
+### PostgreSQL Migration + Connection Pooling
+**What:** Replaced SQLite with PostgreSQL running in Docker, added SQLAlchemy QueuePool with pool_size=10 and max_overflow=20, added db health check and /ready endpoint
+**Why:** SQLite has a single writer lock — under concurrent load from multiple workers every write queues behind the previous one causing latency spikes. PostgreSQL handles thousands of concurrent writes natively and is the standard database for production fintech systems
+**Relevance to Track 02:** Razorpay processes 5-7 million transactions per day with spikes to 400-800 per second. An audit log that serialises every write is a liability not an asset. Production credibility requires a database that matches the transaction volume
+**Honest note:** psycopg2-binary is used instead of psycopg2 for easier installation — production deployments would compile psycopg2 from source for better performance. The /ready endpoint separates liveness from readiness which is required for Kubernetes but also useful here to ensure Docker does not route traffic before the model is loaded
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**

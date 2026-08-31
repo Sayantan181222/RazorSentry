@@ -19,7 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from src.analyst import generate_analyst_note
-from src.audit import get_decision, get_recent_decisions, init_db, log_decision
+from src.audit import check_db_health, get_decision, get_recent_decisions, init_db, log_decision
 from src.drift import check_drift
 from src.features import build_features, get_feature_columns
 from src.monitor import check_fraud_spike
@@ -53,7 +53,15 @@ _feature_columns: list[str] = []
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _model, _explainer, _operating_threshold, _feature_columns
-    init_db()
+    import time as _time
+    for attempt in range(10):
+        try:
+            init_db()
+            break
+        except Exception as e:
+            if attempt == 9:
+                raise RuntimeError(f"Database unavailable after 10 attempts: {e}")
+            _time.sleep(3)
     if os.path.exists(MODEL_PATH):
         with open(MODEL_PATH, "rb") as f:
             _model = pickle.load(f)
@@ -214,6 +222,28 @@ def health() -> dict:
         "model_loaded": _model is not None,
         "operating_threshold": _operating_threshold,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# Returns 200 only when model is loaded and database is reachable — used by Docker healthcheck
+@app.get("/ready")
+def ready() -> dict:
+    from src.audit import check_db_health
+    db_ok = check_db_health()
+    model_ok = _model is not None
+    if not db_ok or not model_ok:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "ready": False,
+                "model_loaded": model_ok,
+                "db_reachable": db_ok,
+            }
+        )
+    return {
+        "ready": True,
+        "model_loaded": model_ok,
+        "db_reachable": db_ok,
     }
 
 
