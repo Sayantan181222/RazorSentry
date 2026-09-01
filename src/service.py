@@ -359,23 +359,25 @@ def monitor_spike() -> dict:
     return check_fraud_spike(scores, window=100, threshold=_operating_threshold)
 
 
-# Checks PSI drift between recent scored transactions and training distribution
+# Computes PSI drift between recent scored transactions and training distribution
 @app.get("/monitor/drift")
 def monitor_drift() -> dict:
     decisions = get_recent_decisions(limit=200)
     if len(decisions) < 10:
         return {"drift_checked": False, "reason": "Not enough recent decisions for drift check"}
+    import numpy as np
     rows = []
     for d in decisions:
+        amount = d.get("amount", 0)
         rows.append({
-            "amount": d.get("amount", 0),
-            "transaction_type": d.get("transaction_type", "PAYMENT"),
+            "amount": amount,
+            "amount_log": float(np.log1p(amount)),
+            "high_amount_flag": int(amount > 200000),
+            "large_amount_flag": int(amount > 500000),
+            "score": d.get("score", 0),
         })
     df = pd.DataFrame(rows)
-    df["amount_log"] = np.log1p(df["amount"])
-    df["high_amount_flag"] = (df["amount"] > 200000).astype(int)
-    from src.features import get_feature_columns
-    available_cols = [c for c in ["amount_log", "high_amount_flag"] if c in df.columns]
+    available_cols = [c for c in df.columns if c != "amount"]
     return check_drift(df, available_cols)
 
 
@@ -451,13 +453,23 @@ def dashboard_stats() -> dict:
     last_10 = recent[:10]
     scores = [d["score"] for d in recent if "score" in d]
     spike = check_fraud_spike(scores, window=100, threshold=_operating_threshold)
-    drift = {"drift_checked": False, "reason": "Insufficient data"} if len(recent) < 10 else check_drift(
-        __import__("pandas").DataFrame([{
-            "amount_log": __import__("numpy").log1p(d.get("amount", 0)),
-            "high_amount_flag": int(d.get("amount", 0) > 200000)
-        } for d in recent]),
-        ["amount_log", "high_amount_flag"]
-    )
+    if len(recent) < 10:
+        drift = {"drift_checked": False, "reason": "Insufficient data"}
+    else:
+        import numpy as np
+        rows = []
+        for d in recent:
+            amount = d.get("amount", 0)
+            rows.append({
+                "amount": amount,
+                "amount_log": float(np.log1p(amount)),
+                "high_amount_flag": int(amount > 200000),
+                "large_amount_flag": int(amount > 500000),
+                "score": d.get("score", 0),
+            })
+        df = pd.DataFrame(rows)
+        available_cols = [c for c in df.columns if c != "amount"]
+        drift = check_drift(df, available_cols)
     return {
         "stats": stats,
         "last_10_decisions": last_10,
@@ -533,10 +545,11 @@ def dashboard() -> HTMLResponse:
     <div class="alert-status" id="spike-status">Loading...</div>
     <div style="font-size:0.72rem;color:#64748b;margin-top:6px" id="spike-detail"></div>
   </div>
-  <div class="alert-box">
-    <div class="alert-title">📊 Feature Drift Monitor</div>
+  <div class="alert-box" style="grid-column: span 1">
+    <div class="alert-title">📊 Feature Drift Monitor (PSI)</div>
     <div class="alert-status" id="drift-status">Loading...</div>
-    <div style="font-size:0.72rem;color:#64748b;margin-top:6px" id="drift-detail"></div>
+    <div style="font-size:0.72rem;color:#64748b;margin-top:4px" id="drift-detail"></div>
+    <div id="psi-table" style="margin-top:10px;font-size:0.7rem;font-family:monospace"></div>
   </div>
 </div>
 
@@ -568,6 +581,27 @@ def dashboard() -> HTMLResponse:
 </div>
 
 <script>
+function renderPsiTable(featurePsi, alertFeatures) {
+  if (!featurePsi || Object.keys(featurePsi).length === 0) return '';
+  const rows = Object.entries(featurePsi)
+    .sort((a, b) => b[1] - a[1])
+    .map(([feat, psi]) => {
+      const isAlert = alertFeatures && alertFeatures.includes(feat);
+      const isWarn = psi > 0.1 && !isAlert;
+      const barWidth = Math.min(psi * 100, 100).toFixed(0);
+      const color = isAlert ? '#f87171' : isWarn ? '#fbbf24' : '#34d399';
+      const flag = isAlert ? ' ⚠' : isWarn ? ' ↑' : '';
+      return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <span style="width:120px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${feat}">${feat}</span>
+        <div style="flex:1;background:#0f1117;border-radius:2px;height:6px">
+          <div style="width:${barWidth}%;background:${color};height:6px;border-radius:2px"></div>
+        </div>
+        <span style="width:52px;text-align:right;color:${color}">${psi.toFixed(4)}${flag}</span>
+      </div>`;
+    }).join('');
+  return `<div style="margin-top:4px">${rows}</div>`;
+}
+
 async function refresh() {
   try {
     const res = await fetch('/dashboard/stats');
@@ -600,22 +634,27 @@ async function refresh() {
     const drift = data.drift_alert;
     const driftEl = document.getElementById('drift-status');
     const driftDetail = document.getElementById('drift-detail');
+    const psiTable = document.getElementById('psi-table');
     if (!drift.drift_checked) {
       driftEl.textContent = '⏳ Insufficient data';
       driftEl.className = 'alert-status alert-warn';
       driftDetail.textContent = drift.reason || '';
+      psiTable.innerHTML = '';
     } else if (drift.alert) {
-      driftEl.textContent = '🔴 DRIFT ALERT (PSI > 0.2)';
+      driftEl.textContent = '🔴 DRIFT ALERT — Retrain recommended';
       driftEl.className = 'alert-status alert-danger';
-      driftDetail.textContent = 'Max PSI: ' + drift.max_psi;
+      driftDetail.textContent = 'Max PSI: ' + drift.max_psi + ' | Samples: ' + (drift.samples_checked || '—');
+      psiTable.innerHTML = renderPsiTable(drift.feature_psi, drift.alert_features);
     } else if (drift.warn) {
-      driftEl.textContent = '🟡 Moderate drift (PSI > 0.1)';
+      driftEl.textContent = '🟡 Moderate drift detected';
       driftEl.className = 'alert-status alert-warn';
-      driftDetail.textContent = 'Max PSI: ' + drift.max_psi;
+      driftDetail.textContent = 'Max PSI: ' + drift.max_psi + ' | Samples: ' + (drift.samples_checked || '—');
+      psiTable.innerHTML = renderPsiTable(drift.feature_psi, drift.alert_features);
     } else {
-      driftEl.textContent = '✅ Stable';
+      driftEl.textContent = '✅ Stable — distribution matches training';
       driftEl.className = 'alert-status alert-ok';
-      driftDetail.textContent = 'Max PSI: ' + (drift.max_psi || 0);
+      driftDetail.textContent = 'Max PSI: ' + (drift.max_psi || 0) + ' | Samples: ' + (drift.samples_checked || '—');
+      psiTable.innerHTML = renderPsiTable(drift.feature_psi, []);
     }
 
     const tbody = document.getElementById('decisions-body');

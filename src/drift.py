@@ -2,6 +2,7 @@
 
 import json
 import os
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 
@@ -45,7 +46,7 @@ def load_reference_stats() -> dict:
         return json.load(f)
 
 
-# Computes PSI for each feature in the incoming batch against training reference
+# Computes PSI for each available feature against training reference distribution
 def check_drift(incoming_df: pd.DataFrame, feature_cols: list) -> dict:
     ref = load_reference_stats()
     if not ref:
@@ -55,15 +56,18 @@ def check_drift(incoming_df: pd.DataFrame, feature_cols: list) -> dict:
     max_psi = 0.0
     alert_features = []
 
-    for col in feature_cols:
-        if col not in ref or col not in incoming_df.columns:
-            continue
+    available_cols = [c for c in feature_cols if c in ref and c in incoming_df.columns]
+
+    if not available_cols:
+        return {"drift_checked": False, "reason": "No matching features between audit log and reference stats"}
+
+    for col in available_cols:
         reference_sample = np.array(ref[col]["values_sample"])
         current_sample = incoming_df[col].dropna().values
-        if len(current_sample) < 10:
+        if len(current_sample) < 5:
             continue
         psi = compute_psi(reference_sample, current_sample)
-        results[col] = psi
+        results[col] = round(psi, 6)
         if psi > max_psi:
             max_psi = psi
         if psi > PSI_ALERT_THRESHOLD:
@@ -76,6 +80,7 @@ def check_drift(incoming_df: pd.DataFrame, feature_cols: list) -> dict:
         "warn": max_psi > PSI_WARN_THRESHOLD,
         "alert_features": alert_features,
         "feature_psi": results,
+        "samples_checked": len(incoming_df),
         "interpretation": {
             "0.0-0.1": "No significant change",
             "0.1-0.2": "Moderate change — monitor",

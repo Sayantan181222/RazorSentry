@@ -132,6 +132,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** Current estimated throughput is 60-80 TPS synchronous. Razorpay's peak is 400-800 TPS. The gap is real and documented honestly — closing it requires Triton, Kafka, and horizontal scaling which are in future scope
 
 ---
+### Data Drift Detection — Live Demonstration
+**What:** Created scripts/simulate_drift.py that sends 50 normal transactions matching training distribution then 50 drifted transactions simulating a festival-season coordinated fraud ring (all CASH_OUT, amounts ₹4.5L-₹9.5L vs training mean of ₹500-₹25,000). Fixed drift.py to check amount_log, high_amount_flag, large_amount_flag, and score features. Updated dashboard to render per-feature PSI bar chart with colour-coded alert levels
+**Why:** A drift detector that never fires is not a detector — it is a placeholder. Real Indian payment fraud spikes sharply during Diwali and IPL season when transaction volumes and amounts shift dramatically from baseline. The simulation recreates this scenario: a mule network receiving large CASH_OUT transfers from many different senders, which shifts the amount distribution far outside the training range and triggers PSI > 0.2
+**Relevance to Track 02:** Track 02 asks for failure handled gracefully. Drift is the silent failure of ML systems — the model continues scoring confidently while the world has changed. Showing PSI fire visibly on the dashboard with a retrain recommendation closes the production ML lifecycle loop: train → deploy → monitor → detect drift → retrain signal
+**Honest note:** PSI is computed on the audit log which stores amount and score but not raw features like drain_flag or dest_in_degree. Full feature drift detection would require storing the raw feature vector at inference time — not done here for storage and privacy reasons. The large_amount_flag and amount_log proxy features are sufficient to demonstrate the concept clearly
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**
