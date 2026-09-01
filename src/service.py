@@ -14,6 +14,9 @@ import pandas as pd
 import shap
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, field_validator
+from redis import Redis
+from rq import Queue
+from rq.job import Job, NoSuchJobError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -29,6 +32,9 @@ MODEL_PATH = os.getenv("MODEL_PATH", "models/lgbm_model.pkl")
 THRESHOLD_PATH = os.getenv("THRESHOLD_PATH", "models/threshold.txt")
 MODEL_VERSION = "lgbm_v1"
 BLOCK_THRESHOLD = 0.5
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+_redis_conn: Redis | None = None
+_score_queue: Queue | None = None
 
 REASON_MAP = {
     "balance_error_orig": "Accounting inconsistency in sender balance",
@@ -49,10 +55,23 @@ _operating_threshold: float = 0.5
 _feature_columns: list[str] = []
 
 
+# Initialises Redis connection and RQ queue, returns False if Redis is unavailable
+def _init_redis() -> bool:
+    global _redis_conn, _score_queue
+    try:
+        _redis_conn = Redis.from_url(REDIS_URL, socket_connect_timeout=2)
+        _redis_conn.ping()
+        _score_queue = Queue("scoring", connection=_redis_conn)
+        return True
+    except Exception:
+        return False
+
+
 # Loads the LightGBM model, SHAP explainer, threshold, and feature columns at startup
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _model, _explainer, _operating_threshold, _feature_columns
+    _init_redis()
     import time as _time
     for attempt in range(10):
         try:
@@ -375,3 +394,47 @@ def analyst_note(decision_id: str) -> dict:
         reasons=record["top_reasons"],
     )
     return {"decision_id": decision_id, "analyst_note": note}
+
+
+# Enqueues a transaction for async scoring and immediately returns a job_id
+@app.post("/score/async")
+@limiter.limit("200/minute")
+def score_async(request: Request, tx: TransactionInput) -> dict:
+    if _model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    if _score_queue is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Queue unavailable — falling back to /score for sync scoring"
+        )
+    from src.queue_worker import score_transaction_job
+    job = _score_queue.enqueue(
+        score_transaction_job,
+        tx.model_dump(),
+        job_timeout=30,
+        result_ttl=300,
+    )
+    return {
+        "job_id": job.id,
+        "status": "queued",
+        "poll_url": f"/score/result/{job.id}",
+        "message": "Transaction queued for scoring. Poll poll_url for result.",
+    }
+
+
+# Polls Redis for the result of an async scoring job by job_id
+@app.get("/score/result/{job_id}")
+def score_result(job_id: str) -> dict:
+    if _redis_conn is None:
+        raise HTTPException(status_code=503, detail="Queue unavailable")
+    try:
+        job = Job.fetch(job_id, connection=_redis_conn)
+    except NoSuchJobError:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    if job.is_finished:
+        return {"job_id": job_id, "status": "complete", "result": job.result}
+    if job.is_failed:
+        return {"job_id": job_id, "status": "failed", "error": str(job.exc_info)}
+    if job.is_started:
+        return {"job_id": job_id, "status": "processing"}
+    return {"job_id": job_id, "status": "queued"}

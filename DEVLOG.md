@@ -111,6 +111,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** Each worker loads the 150MB LightGBM model independently into memory so 4 workers use roughly 600MB just for the model. Production would use a model server like Triton that loads the model once and serves all workers from a shared memory space. That is out of scope here but noted for the HLD
 
 ---
+### Redis Queue for Async Scoring
+**What:** Added POST /score/async that enqueues transactions on Redis RQ and returns a job_id immediately, GET /score/result/{job_id} polls for the result, a dedicated rq_worker container processes the queue
+**Why:** The synchronous /score endpoint blocks the caller for 50ms while scoring runs. Under burst load — 500 transactions arriving simultaneously — all 500 callers wait in line. With a queue, all 500 are accepted instantly with a job_id. The worker drains the queue at its own pace and the caller polls for results asynchronously. This is how Razorpay's actual risk system would work — the payment gateway cannot block on fraud scoring
+**Relevance to Track 02:** Shows production architecture thinking — acceptance and processing are decoupled. The /score endpoint still exists for synchronous use cases like the webhook. The async endpoint handles burst volume without degrading latency for other callers
+**Honest note:** RQ with Redis is simpler than Kafka but sufficient for this scale. Kafka would add durability guarantees (messages survive Redis restarts) and exactly-once semantics. For a buildathon demo RQ demonstrates the pattern correctly. Job results are stored in Redis for 300 seconds (result_ttl) before expiring — production would write results to PostgreSQL instead of relying on Redis TTL
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**

@@ -19,3 +19,6 @@ python-dotenv==1.0.1
 anyio==4.4.0
 pytest-asyncio==0.23.7
 slowapi==0.1.9
+redis==5.0.4
+rq==1.16.2
+rq-dashboard==0.6.1

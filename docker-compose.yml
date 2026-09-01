@@ -16,6 +16,17 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   razorsentry:
     build: .
     ports:
@@ -26,12 +37,15 @@ services:
       - ./reports:/app/reports
     environment:
       - DATABASE_URL=postgresql://razorsentry:razorsentry_pass@db:5432/razorsentry
+      - REDIS_URL=redis://redis:6379
       - PII_SALT=${PII_SALT:-razorsentry-change-this-in-production}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
       - MODEL_PATH=models/lgbm_model.pkl
       - THRESHOLD_PATH=models/threshold.txt
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     deploy:
       resources:
@@ -45,6 +59,28 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  rq_worker:
+    build: .
+    command: ["rq", "worker", "scoring", "--url", "redis://redis:6379"]
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    environment:
+      - DATABASE_URL=postgresql://razorsentry:razorsentry_pass@db:5432/razorsentry
+      - REDIS_URL=redis://redis:6379
+      - PII_SALT=${PII_SALT:-razorsentry-change-this-in-production}
+      - MODEL_PATH=models/lgbm_model.pkl
+      - THRESHOLD_PATH=models/threshold.txt
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
 volumes:
   postgres_data:
