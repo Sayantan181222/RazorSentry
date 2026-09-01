@@ -121,8 +121,18 @@ if __name__ == "__main__":
     check_drift_status("After normal transactions (should be stable)")
     check_spike_status()
 
-    print("\n\nStep 2: Sending 50 DRIFTED transactions (fraud ring pattern)...")
-    print("Watch the dashboard at http://localhost:8000/dashboard")
+    print("\n\n" + "="*60)
+    print("  BASELINE ESTABLISHED — Normal distribution sent")
+    print("  Open http://localhost:8000/dashboard now")
+    print("  You should see: ~50 APPROVED, PSI stable or low")
+    print("  Press ENTER when ready to send the drifted batch...")
+    print("="*60)
+    input()
+
+    print("\nStep 2: Sending 50 DRIFTED transactions (fraud ring pattern)...")
+    print("Festival-season scenario: coordinated CASH_OUT mule network")
+    print("Amounts: ₹4.5L - ₹9.5L (10-50x normal transaction size)")
+    print("Watch the dashboard at http://localhost:8000/dashboard\n")
     drifted_txns = make_drifted_transactions(50)
     send_batch(drifted_txns, "DRIFTED TRANSACTIONS — Festival Fraud Ring Pattern")
 

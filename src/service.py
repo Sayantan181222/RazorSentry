@@ -450,7 +450,7 @@ def dashboard_stats() -> dict:
     from src.audit import check_db_health
     recent = get_recent_decisions(limit=200)
     stats = get_dashboard_stats(recent)
-    last_10 = recent[:10]
+    last_10 = recent[:20]
     scores = [d["score"] for d in recent if "score" in d]
     spike = check_fraud_spike(scores, window=100, threshold=_operating_threshold)
     if len(recent) < 10:
@@ -470,11 +470,15 @@ def dashboard_stats() -> dict:
         df = pd.DataFrame(rows)
         available_cols = [c for c in df.columns if c != "amount"]
         drift = check_drift(df, available_cols)
+        from src.dashboard import record_drift_history
+        record_drift_history(drift)
+    from src.dashboard import get_drift_history
     return {
         "stats": stats,
         "last_10_decisions": last_10,
         "spike_alert": spike,
         "drift_alert": drift,
+        "drift_history": get_drift_history(),
         "db_healthy": check_db_health(),
         "model_version": MODEL_VERSION,
         "operating_threshold": _operating_threshold,
@@ -495,7 +499,7 @@ def dashboard() -> HTMLResponse:
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 24px; }
   h1 { font-size: 1.4rem; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
   .subtitle { font-size: 0.8rem; color: #64748b; margin-bottom: 24px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .card { background: #1e2433; border-radius: 10px; padding: 20px; border: 1px solid #2d3748; }
   .card .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
   .card .value { font-size: 2rem; font-weight: 700; }
@@ -504,27 +508,38 @@ def dashboard() -> HTMLResponse:
   .card .value.approve { color: #34d399; }
   .card .value.total { color: #60a5fa; }
   .card .value.latency { color: #a78bfa; }
-  .alerts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .alert-box { background: #1e2433; border-radius: 10px; padding: 16px; border: 1px solid #2d3748; }
-  .alert-box .alert-title { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-  .alert-box .alert-status { font-size: 0.95rem; font-weight: 600; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .panel { background: #1e2433; border-radius: 10px; border: 1px solid #2d3748; padding: 16px; }
+  .panel-title { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .alert-status { font-size: 0.95rem; font-weight: 600; }
   .alert-ok { color: #34d399; }
   .alert-warn { color: #fbbf24; }
   .alert-danger { color: #f87171; }
+  .dist-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0 6px; }
+  .dist-block { background: #f87171; }
+  .dist-review { background: #fbbf24; }
+  .dist-approve { background: #34d399; }
+  .dist-legend { display: flex; gap: 12px; font-size: 0.7rem; color: #94a3b8; }
+  .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
   .table-section { background: #1e2433; border-radius: 10px; border: 1px solid #2d3748; overflow: hidden; margin-bottom: 24px; }
-  .table-header { padding: 16px 20px; font-size: 0.85rem; font-weight: 600; border-bottom: 1px solid #2d3748; color: #94a3b8; }
+  .table-header { padding: 14px 20px; font-size: 0.85rem; font-weight: 600; border-bottom: 1px solid #2d3748; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; }
+  .badge-count { font-size: 0.7rem; background: #2d3748; padding: 2px 8px; border-radius: 10px; }
   table { width: 100%; border-collapse: collapse; }
   th { padding: 10px 16px; text-align: left; font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #2d3748; }
-  td { padding: 10px 16px; font-size: 0.8rem; border-bottom: 1px solid #1a2035; font-family: 'SF Mono', 'Fira Code', monospace; }
+  td { padding: 9px 16px; font-size: 0.78rem; border-bottom: 1px solid #1a2035; font-family: 'SF Mono', 'Fira Code', monospace; }
   tr:last-child td { border-bottom: none; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
   .badge.BLOCK { background: #7f1d1d; color: #f87171; }
   .badge.REVIEW { background: #78350f; color: #fbbf24; }
   .badge.APPROVE { background: #064e3b; color: #34d399; }
-  .footer { font-size: 0.72rem; color: #475569; text-align: center; }
+  .footer { font-size: 0.72rem; color: #475569; text-align: center; margin-top: 8px; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #34d399; margin-right: 6px; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  #last-updated { color: #475569; font-size: 0.72rem; }
+  .timeline-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #1a2035; font-size: 0.72rem; }
+  .timeline-row:last-child { border-bottom: none; }
+  .psi-bar-wrap { flex: 1; background: #0f1117; border-radius: 2px; height: 6px; }
+  .psi-bar-fill { height: 6px; border-radius: 2px; }
 </style>
 </head>
 <body>
@@ -539,22 +554,44 @@ def dashboard() -> HTMLResponse:
   <div class="card"><div class="label">Avg Latency</div><div class="value latency" id="latency">—</div></div>
 </div>
 
-<div class="alerts">
-  <div class="alert-box">
-    <div class="alert-title">⚡ Fraud Spike Monitor</div>
+<div class="two-col">
+  <div class="panel">
+    <div class="panel-title">📊 Decision Distribution</div>
+    <div class="dist-bar" id="dist-bar"></div>
+    <div class="dist-legend">
+      <span><span class="dist-dot" style="background:#f87171"></span>Block <span id="pct-block">—</span></span>
+      <span><span class="dist-dot" style="background:#fbbf24"></span>Review <span id="pct-review">—</span></span>
+      <span><span class="dist-dot" style="background:#34d399"></span>Approve <span id="pct-approve">—</span></span>
+    </div>
+    <div style="font-size:0.7rem;color:#475569;margin-top:8px" id="dist-note"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">⚡ Fraud Spike Monitor (EWMA)</div>
     <div class="alert-status" id="spike-status">Loading...</div>
     <div style="font-size:0.72rem;color:#64748b;margin-top:6px" id="spike-detail"></div>
   </div>
-  <div class="alert-box" style="grid-column: span 1">
-    <div class="alert-title">📊 Feature Drift Monitor (PSI)</div>
+</div>
+
+<div class="two-col">
+  <div class="panel">
+    <div class="panel-title">📉 Feature Drift Monitor (PSI)</div>
     <div class="alert-status" id="drift-status">Loading...</div>
     <div style="font-size:0.72rem;color:#64748b;margin-top:4px" id="drift-detail"></div>
     <div id="psi-table" style="margin-top:10px;font-size:0.7rem;font-family:monospace"></div>
   </div>
+  <div class="panel">
+    <div class="panel-title">⏱️ PSI History (last 20 checks)</div>
+    <div id="psi-timeline" style="margin-top:4px">
+      <div style="color:#475569;font-size:0.72rem">Waiting for drift checks...</div>
+    </div>
+  </div>
 </div>
 
 <div class="table-section">
-  <div class="table-header">Last 10 Decisions</div>
+  <div class="table-header">
+    <span>Last 20 Decisions</span>
+    <span class="badge-count" id="total-log-count"></span>
+  </div>
   <table>
     <thead>
       <tr>
@@ -588,18 +625,38 @@ function renderPsiTable(featurePsi, alertFeatures) {
     .map(([feat, psi]) => {
       const isAlert = alertFeatures && alertFeatures.includes(feat);
       const isWarn = psi > 0.1 && !isAlert;
-      const barWidth = Math.min(psi * 100, 100).toFixed(0);
+      const barWidth = Math.min(psi * 20, 100).toFixed(0);
       const color = isAlert ? '#f87171' : isWarn ? '#fbbf24' : '#34d399';
       const flag = isAlert ? ' ⚠' : isWarn ? ' ↑' : '';
-      return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
-        <span style="width:120px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${feat}">${feat}</span>
+      return `<div style="margin-bottom:5px;display:flex;align-items:center;gap:6px">
+        <span style="width:110px;color:#94a3b8;font-size:0.68rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${feat}">${feat}</span>
         <div style="flex:1;background:#0f1117;border-radius:2px;height:6px">
           <div style="width:${barWidth}%;background:${color};height:6px;border-radius:2px"></div>
         </div>
-        <span style="width:52px;text-align:right;color:${color}">${psi.toFixed(4)}${flag}</span>
+        <span style="width:60px;text-align:right;color:${color};font-size:0.68rem">${psi.toFixed(4)}${flag}</span>
       </div>`;
     }).join('');
   return `<div style="margin-top:4px">${rows}</div>`;
+}
+
+function renderPsiTimeline(history) {
+  if (!history || history.length === 0) {
+    return '<div style="color:#475569;font-size:0.72rem">No drift checks recorded yet</div>';
+  }
+  return history.slice().reverse().map(h => {
+    const color = h.alert ? '#f87171' : h.warn ? '#fbbf24' : '#34d399';
+    const label = h.alert ? '🔴' : h.warn ? '🟡' : '✅';
+    const barW = Math.min(h.max_psi * 15, 100).toFixed(0);
+    return `<div class="timeline-row">
+      <span style="color:#475569;width:52px">${h.timestamp}</span>
+      <span>${label}</span>
+      <div class="psi-bar-wrap">
+        <div class="psi-bar-fill" style="width:${barW}%;background:${color}"></div>
+      </div>
+      <span style="color:${color};width:52px;text-align:right">${h.max_psi.toFixed(3)}</span>
+      <span style="color:#475569;width:40px;font-size:0.65rem">n=${h.samples}</span>
+    </div>`;
+  }).join('');
 }
 
 async function refresh() {
@@ -614,21 +671,37 @@ async function refresh() {
     document.getElementById('approved').textContent = s.approved;
     document.getElementById('latency').textContent = s.avg_latency_ms + 'ms';
     document.getElementById('model-ver').textContent = data.model_version;
-    document.getElementById('threshold').textContent = data.operating_threshold;
+    document.getElementById('threshold').textContent = parseFloat(data.operating_threshold).toFixed(2);
     document.getElementById('db-health').textContent = data.db_healthy ? '✅ Connected' : '❌ Unreachable';
     document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    document.getElementById('total-log-count').textContent = s.total_in_log + ' total in log';
+
+    const total = s.blocked + s.review + s.approved;
+    if (total > 0) {
+      const pBlock = (s.blocked / total * 100).toFixed(1);
+      const pReview = (s.review / total * 100).toFixed(1);
+      const pApprove = (s.approved / total * 100).toFixed(1);
+      document.getElementById('dist-bar').innerHTML =
+        `<div class="dist-block" style="width:${pBlock}%"></div>` +
+        `<div class="dist-review" style="width:${pReview}%"></div>` +
+        `<div class="dist-approve" style="width:${pApprove}%"></div>`;
+      document.getElementById('pct-block').textContent = pBlock + '%';
+      document.getElementById('pct-review').textContent = pReview + '%';
+      document.getElementById('pct-approve').textContent = pApprove + '%';
+      document.getElementById('dist-note').textContent =
+        `${s.blocked} blocked · ${s.review} review · ${s.approved} approved out of ${total} today`;
+    }
 
     const spike = data.spike_alert;
     const spikeEl = document.getElementById('spike-status');
-    const spikeDetail = document.getElementById('spike-detail');
     if (spike.spike_detected) {
       spikeEl.textContent = '🔴 SPIKE DETECTED';
       spikeEl.className = 'alert-status alert-danger';
-      spikeDetail.textContent = 'EWMA rate: ' + (spike.ewma_rate * 100).toFixed(2) + '%';
+      document.getElementById('spike-detail').textContent = 'EWMA rate: ' + (spike.ewma_rate * 100).toFixed(2) + '%';
     } else {
       spikeEl.textContent = '✅ Normal';
       spikeEl.className = 'alert-status alert-ok';
-      spikeDetail.textContent = 'EWMA rate: ' + (spike.ewma_rate * 100).toFixed(2) + '%';
+      document.getElementById('spike-detail').textContent = 'EWMA rate: ' + (spike.ewma_rate * 100).toFixed(2) + '%';
     }
 
     const drift = data.drift_alert;
@@ -656,6 +729,8 @@ async function refresh() {
       driftDetail.textContent = 'Max PSI: ' + (drift.max_psi || 0) + ' | Samples: ' + (drift.samples_checked || '—');
       psiTable.innerHTML = renderPsiTable(drift.feature_psi, []);
     }
+
+    document.getElementById('psi-timeline').innerHTML = renderPsiTimeline(data.drift_history || []);
 
     const tbody = document.getElementById('decisions-body');
     const rows = data.last_10_decisions;

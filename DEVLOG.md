@@ -139,6 +139,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** PSI is computed on the audit log which stores amount and score but not raw features like drain_flag or dest_in_degree. Full feature drift detection would require storing the raw feature vector at inference time — not done here for storage and privacy reasons. The large_amount_flag and amount_log proxy features are sufficient to demonstrate the concept clearly
 
 ---
+### Dashboard Enhanced — Decision Distribution + PSI Timeline
+**What:** Added decision distribution bar showing BLOCK/REVIEW/APPROVE split as a visual percentage bar, added PSI history timeline panel showing drift PSI value at each 10-second check so before/after contrast is visible, expanded last 10 decisions to last 20
+**Why:** After running simulate_drift.py the last 10 decisions table showed only BLOCKED transactions because the drifted batch ran last — the normal approved transactions were scrolled off. The distribution bar shows the full 50/50 split clearly. The PSI timeline shows exactly when drift crossed the 0.2 threshold
+**Relevance to Track 02:** "Show the audit trail and one failure handled gracefully" — the PSI timeline is the audit trail for model health, not just transaction decisions. A judge can see the exact moment the fraud ring started and when the system detected it
+**Honest note:** PSI history is stored in-memory and resets when the service restarts. Production would store drift check results in PostgreSQL with timestamps for long-term model health tracking
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**
