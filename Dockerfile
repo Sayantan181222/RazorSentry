@@ -15,4 +15,4 @@ COPY src/ ./src/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "src.service:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--timeout-keep-alive", "30"]
+CMD ["uvicorn", "src.service:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--timeout-keep-alive", "30", "--timeout-graceful-shutdown", "10"]

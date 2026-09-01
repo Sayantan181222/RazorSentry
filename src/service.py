@@ -23,7 +23,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from src.analyst import generate_analyst_note
-from src.audit import check_db_health, get_decision, get_recent_decisions, init_db, log_decision
+from src.audit import check_db_health, get_decision, get_pool_stats, get_recent_decisions, init_db, log_decision
 from src.dashboard import get_dashboard_stats
 from src.drift import check_drift
 from src.features import build_features, get_feature_columns
@@ -246,25 +246,55 @@ def health() -> dict:
     }
 
 
-# Returns 200 only when model is loaded and database is reachable — used by Docker healthcheck
+# Returns 200 only when model is loaded and database is reachable — used by Docker and Kubernetes healthchecks
 @app.get("/ready")
 def ready() -> dict:
     from src.audit import check_db_health
+    import time
+    t0 = time.perf_counter()
     db_ok = check_db_health()
+    db_latency_ms = round((time.perf_counter() - t0) * 1000, 2)
     model_ok = _model is not None
-    if not db_ok or not model_ok:
+    threshold_ok = _operating_threshold is not None
+    redis_ok = _redis_conn is not None
+    try:
+        if redis_ok:
+            _redis_conn.ping()
+    except Exception:
+        redis_ok = False
+    all_ok = model_ok and db_ok
+    if not all_ok:
         raise HTTPException(
             status_code=503,
             detail={
                 "ready": False,
                 "model_loaded": model_ok,
                 "db_reachable": db_ok,
+                "db_latency_ms": db_latency_ms,
+                "threshold_loaded": threshold_ok,
+                "redis_reachable": redis_ok,
             }
         )
     return {
         "ready": True,
         "model_loaded": model_ok,
         "db_reachable": db_ok,
+        "db_latency_ms": db_latency_ms,
+        "threshold_loaded": threshold_ok,
+        "redis_reachable": redis_ok,
+        "operating_threshold": _operating_threshold,
+        "model_version": MODEL_VERSION,
+    }
+
+
+# Returns PostgreSQL connection pool statistics for infrastructure monitoring
+@app.get("/health/pool")
+def pool_health() -> dict:
+    return {
+        "pool_stats": get_pool_stats(),
+        "model_version": MODEL_VERSION,
+        "workers": 4,
+        "note": "pool stats are per-worker — multiply checked_out by workers for total connections"
     }
 
 

@@ -146,6 +146,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** PSI history is stored in-memory and resets when the service restarts. Production would store drift check results in PostgreSQL with timestamps for long-term model health tracking
 
 ---
+### Production Hardening — Graceful Shutdown + Readiness Probe
+**What:** Added --timeout-graceful-shutdown 10 to uvicorn CMD so in-flight requests complete before process exits on SIGTERM, hardened /ready endpoint to check model, database, threshold, and Redis independently with DB latency measurement, added /health/pool endpoint exposing SQLAlchemy connection pool statistics per worker
+**Why:** Without graceful shutdown, a rolling deployment or Docker restart drops all in-flight requests instantly. The 10-second window allows sub-60ms scoring requests to complete even under heavy load. The /ready endpoint is what Kubernetes uses to determine if a pod should receive traffic — a pod that passes /health but fails /ready gets no traffic until it is truly ready
+**Relevance to Track 02:** "Build quality — does it run, is it structured, would you trust it." A service that drops requests on restart is not trustworthy. Graceful shutdown and a proper readiness probe are table stakes for production fintech systems
+**Honest note:** --timeout-graceful-shutdown is a uvicorn flag that signals workers to stop accepting new connections and finish existing ones. With 4 workers each handling ~15-20 RPS, the 10 second window covers ~150-200 in-flight requests. Production would use a longer window (30-60s) for batch endpoints
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**

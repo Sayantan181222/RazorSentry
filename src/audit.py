@@ -135,7 +135,7 @@ def get_recent_decisions(limit: int = 50) -> list[dict]:
         db.close()
 
 
-# Checks if the database is reachable and returns True if healthy
+# Checks if the database is reachable with a lightweight SELECT 1 query
 def check_db_health() -> bool:
     try:
         db: Session = SessionLocal()
@@ -144,3 +144,18 @@ def check_db_health() -> bool:
         return True
     except Exception:
         return False
+
+
+# Returns current connection pool statistics for monitoring
+def get_pool_stats() -> dict:
+    try:
+        pool = engine.pool
+        return {
+            "pool_size": pool.size(),
+            "checked_in": pool.checkedin(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+        }
+    except Exception:
+        return {}
+
