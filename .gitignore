@@ -15,3 +15,4 @@ reports/*.png
 reports/*.json
 reports/*.csv
 .pytest_cache/
+reports/batch_replay_results.csv

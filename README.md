@@ -24,7 +24,7 @@ RazorSentry is a production-structured fraud decisioning service that:
 
 ## Architecture
 
-Transactions arrive as JSON at the FastAPI Decision Engine. Requests pass through an input validation layer and rate limiter before entering the scoring pipeline. The feature engineering layer extracts velocity, balance error, drain pattern, and graph-flavored in-degree signals, then the LightGBM model produces a fraud probability score. A cost-aware thresholding module converts that probability into an APPROVE / REVIEW / BLOCK decision by maximising expected rupee net savings across both error types. Every decision — along with its score, reason codes, and SHAP values — is written to an append-only audit log via SQLAlchemy, protected by a software PII blinding layer. Background monitors include an EWMA fraud spike detector and a PSI feature drift monitor. An optional Groq LLaMA (llama-3.1-8b-instant) call drafts a 2-line analyst note for REVIEW-queue items only, after the decision is already final.
+Transactions arrive at the FastAPI Decision Engine running as 4 parallel uvicorn workers behind a single port. Requests pass through Pydantic input validation and a per-IP rate limiter before entering the scoring pipeline. Two scoring paths exist: POST /score scores synchronously in under 60ms and returns a decision immediately — used for webhooks and low-latency needs. POST /score/async enqueues the transaction on Redis Queue and returns a job_id immediately — used for burst traffic where the caller can tolerate polling. An RQ worker container drains the queue independently. The feature engineering layer extracts 10 signals including velocity, balance error, drain pattern, and graph-flavored in-degree. The LightGBM model (isotonically calibrated) produces a fraud probability. A cost-aware threshold converts that into BLOCK, REVIEW, or APPROVE by maximising rupee net savings. Every decision is written to a PostgreSQL audit log via SQLAlchemy with connection pooling, protected by HMAC-SHA256 PII blinding. A live fraud operations dashboard at GET /dashboard shows real-time decision counts, EWMA spike alerts, PSI drift status, and the last 10 decisions — auto-refreshing every 10 seconds. An optional Groq LLaMA call drafts a 2-line analyst note for REVIEW-queue items only, after the decision is final.
 
 ---
 
@@ -42,20 +42,51 @@ python src/train.py
 
 make eval
 
-docker compose up --build
+# Start all services (PostgreSQL, Redis, RazorSentry, RQ worker)
+docker compose up --build -d
+
+# Check all containers are healthy
+docker compose ps
+
+# Open monitoring dashboard
+open http://localhost:8000/dashboard
+
+# Test synchronous scoring
+curl -s -X POST http://localhost:8000/score \
+  -H "Content-Type: application/json" \
+  -d '{"transaction_id":"TEST_001","step":1,"type":"CASH_OUT","amount":180000,"nameOrig":"C123","oldbalanceOrg":180000,"newbalanceOrig":0,"nameDest":"C456","oldbalanceDest":0,"newbalanceDest":180000}' \
+  | python3 -m json.tool
+
+# Test async scoring
+curl -s -X POST http://localhost:8000/score/async \
+  -H "Content-Type: application/json" \
+  -d '{"transaction_id":"TEST_002","step":1,"type":"PAYMENT","amount":1200,"nameOrig":"C789","oldbalanceOrg":50000,"newbalanceOrig":48800,"nameDest":"M111","oldbalanceDest":0,"newbalanceDest":0}' \
+  | python3 -m json.tool
+
+# Inspect PostgreSQL audit log
+make db-shell
 
 bash scripts/demo_curl.sh
 ```
 
-### Key API Endpoints
-- `POST /score` — Real-time transaction scoring with SHAP reason codes
-- `POST /batch` — Batch transaction scoring with aggregate summary
-- `POST /webhook/razorpay` — Ingests Razorpay `payment.failed` event payloads
-- `GET /decisions/{id}` — Retrieves decision record from the audit log
-- `GET /analyst/note/{decision_id}` — Generates a 2-line Groq LLaMA explanation for REVIEW items
-- `GET /monitor/spike` — EWMA fraud spike detection status
-- `GET /monitor/drift` — Population Stability Index (PSI) feature drift monitor
-- `GET /health` — Service health, loaded model version, and operating threshold
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/score` | Synchronous scoring — returns decision in under 60ms |
+| POST | `/score/async` | Async scoring — returns job_id immediately, poll for result |
+| GET | `/score/result/{job_id}` | Poll for async scoring result |
+| POST | `/batch` | Score a list of transactions sequentially |
+| POST | `/webhook/razorpay` | Ingest Razorpay payment.failed webhook events |
+| GET | `/decisions/{decision_id}` | Retrieve a past decision by UUID |
+| GET | `/decisions` | List recent decisions (default last 50) |
+| GET | `/analyst/note/{decision_id}` | Generate Groq LLaMA analyst note for REVIEW decisions |
+| GET | `/monitor/spike` | EWMA fraud spike alert |
+| GET | `/monitor/drift` | PSI feature drift status |
+| GET | `/dashboard` | Live fraud operations dashboard |
+| GET | `/dashboard/stats` | Dashboard JSON stats payload |
+| GET | `/health` | Service liveness |
+| GET | `/ready` | Readiness — 503 until model and DB are both live |
 
 ---
 
