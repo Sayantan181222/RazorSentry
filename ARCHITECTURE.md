@@ -153,8 +153,10 @@ a fallback string if the API is unavailable.
 
 **Monitoring Dashboard (src/dashboard.py + src/service.py)**
 Single HTML page served at GET /dashboard. Fetches /dashboard/stats every 10s.
-Shows: total decisions today, BLOCK/REVIEW/APPROVE counts, avg latency, spike
-and drift alerts, last 10 decisions table with blinded transaction IDs.
+Shows: total decisions today, BLOCK/REVIEW/APPROVE distribution bar with percentages,
+EWMA spike monitor with rate gauge, PSI drift monitor with per-feature bar chart,
+PSI history timeline showing drift over time, last 20 decisions table.
+In-memory PSI history (resets on restart — PostgreSQL persistence is future scope).
 
 ---
 
@@ -264,6 +266,7 @@ aid for human analysts, not a decision-making component.
 | InfluxDB | Time-series storage for historical throughput and fraud rate trends |
 | Model retraining pipeline | Triggered by PSI alert, CI/CD for model promotion |
 | Per-merchant rate limiting | API keys instead of per-IP limits |
+| Dashboard PSI history persistence | Store drift check results in PostgreSQL instead of in-memory — survives service restarts |
 
 ---
 

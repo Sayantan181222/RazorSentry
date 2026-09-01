@@ -26,6 +26,17 @@ RazorSentry is a production-structured fraud decisioning service that:
 
 Transactions arrive at the FastAPI Decision Engine running as 4 parallel uvicorn workers behind a single port. Requests pass through Pydantic input validation and a per-IP rate limiter before entering the scoring pipeline. Two scoring paths exist: POST /score scores synchronously in under 60ms and returns a decision immediately — used for webhooks and low-latency needs. POST /score/async enqueues the transaction on Redis Queue and returns a job_id immediately — used for burst traffic where the caller can tolerate polling. An RQ worker container drains the queue independently. The feature engineering layer extracts 10 signals including velocity, balance error, drain pattern, and graph-flavored in-degree. The LightGBM model (isotonically calibrated) produces a fraud probability. A cost-aware threshold converts that into BLOCK, REVIEW, or APPROVE by maximising rupee net savings. Every decision is written to a PostgreSQL audit log via SQLAlchemy with connection pooling, protected by HMAC-SHA256 PII blinding. A live fraud operations dashboard at GET /dashboard shows real-time decision counts, EWMA spike alerts, PSI drift status, and the last 10 decisions — auto-refreshing every 10 seconds. An optional Groq LLaMA call drafts a 2-line analyst note for REVIEW-queue items only, after the decision is final.
 
+### Data Drift Simulation
+To demonstrate live drift detection, run the festival-season fraud simulation:
+```bash
+python scripts/simulate_drift.py
+```
+This sends 50 normal transactions (PAYMENT/CASH_IN/DEBIT, ₹500-25,000) then pauses.
+Open http://localhost:8000/dashboard to see PSI stable. Press Enter to send 50 drifted
+transactions (all CASH_OUT, ₹4.5L-9.5L) simulating a coordinated mule network.
+The dashboard Feature Drift Monitor flips from ✅ Stable to 🔴 DRIFT ALERT (PSI > 0.2)
+in real time. The PSI History panel shows the exact moment drift crossed the threshold.
+
 ---
 
 ## Quickstart
@@ -158,7 +169,7 @@ analyst.py was initialized with "groq/compound-mini" which is not a valid Groq m
 | **Precision @ threshold** | 1.000 |
 | **Recall @ threshold** | 0.9998 |
 | **False positive cost** | ₹150 per transaction (review cost assumption) |
-| **Net savings (test set)** | ₹1.95 Cr across 101,643 test transactions |
+| **Net savings (test set)** | ₹195.36 Cr (₹1,953,623,413.78 across 101,643 test transactions) |
 
 ### Known Failure Modes
 | Failure Mode | Description |
@@ -177,6 +188,21 @@ analyst.py was initialized with "groq/compound-mini" which is not a valid Groq m
 - Replacing human review for high-value transactions above ₹10 lakh
 - Deployment on non-PaySim real data without retraining and recalibration
 - Offensive fraud (identifying vulnerabilities to exploit) — strictly defense-only
+
+---
+
+## Infrastructure
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| API Server | FastAPI + 4 uvicorn workers | Parallel request handling |
+| Sync scoring | POST /score | Sub-60ms real-time decisions |
+| Async scoring | POST /score/async + Redis RQ | Burst traffic decoupling |
+| Database | PostgreSQL 16 (Docker) | Production audit log with connection pooling |
+| Cache/Queue | Redis 7 (Docker) | RQ job queue for async scoring |
+| Monitoring | GET /dashboard | Live fraud ops dashboard, auto-refresh 10s |
+| Privacy | HMAC-SHA256 PII blinding | Account IDs never stored in plaintext |
+| Drift detection | PSI monitor | Alerts when incoming distribution shifts from training |
 
 ---
 

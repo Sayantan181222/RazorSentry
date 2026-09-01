@@ -185,13 +185,5 @@ but old records persisted. Confirmed blinding works on new records:
 SENSITIVE_ACCOUNT_99999 stored as 2e10c17cfbb44f3d in the DB.
 Fixed by deleting all records where length(transaction_id) != 16.
 
----
 
-## Production Hardening
-- PII blinding: HMAC-SHA256 hashes account IDs before audit log storage
-- Isotonic calibration: probability scores now interpretable, threshold corrected
-- PSI drift detector: monitors feature distribution shift from training baseline
-- Input validation: Pydantic validators reject invalid types, negative amounts, bad steps
-- Rate limiting: 60 req/min on /score, 10 req/min on /batch via slowapi
-- All changes tested and pushed
 
