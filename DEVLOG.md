@@ -118,6 +118,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** RQ with Redis is simpler than Kafka but sufficient for this scale. Kafka would add durability guarantees (messages survive Redis restarts) and exactly-once semantics. For a buildathon demo RQ demonstrates the pattern correctly. Job results are stored in Redis for 300 seconds (result_ttl) before expiring — production would write results to PostgreSQL instead of relying on Redis TTL
 
 ---
+### Live Fraud Operations Dashboard
+**What:** Built a real-time monitoring dashboard at GET /dashboard served directly by FastAPI as an HTML page, auto-refreshing every 10 seconds via /dashboard/stats JSON endpoint showing decision counts, spike alerts, drift status, and the last 10 decisions
+**Why:** Fraud operations teams need a live view of what the model is deciding. A spike in BLOCK decisions at 2am is meaningless in a log file but obvious on a dashboard. This is the human-in-the-loop interface for the three-tier decision system
+**Relevance to Track 02:** Track 02 asks for bounded and gated money actions. The dashboard is the gate — it surfaces anomalies so a human can intervene. The EWMA spike monitor and PSI drift detector feed directly into the dashboard alerts making monitoring actionable not just measurable
+**Honest note:** The dashboard uses plain JavaScript fetch with no framework. In production this would be a proper React app with WebSocket push instead of polling, connected to a time-series database like InfluxDB for historical trends. For a buildathon demo polling every 10 seconds is sufficient and has zero build complexity
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**

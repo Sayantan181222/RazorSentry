@@ -13,6 +13,7 @@ import pandas as pd
 # pyrefly: ignore [missing-import]
 import shap
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, field_validator
 from redis import Redis
 from rq import Queue
@@ -23,6 +24,7 @@ from slowapi.util import get_remote_address
 
 from src.analyst import generate_analyst_note
 from src.audit import check_db_health, get_decision, get_recent_decisions, init_db, log_decision
+from src.dashboard import get_dashboard_stats
 from src.drift import check_drift
 from src.features import build_features, get_feature_columns
 from src.monitor import check_fraud_spike
@@ -438,3 +440,216 @@ def score_result(job_id: str) -> dict:
     if job.is_started:
         return {"job_id": job_id, "status": "processing"}
     return {"job_id": job_id, "status": "queued"}
+
+
+# Returns a JSON stats payload for the dashboard frontend to consume
+@app.get("/dashboard/stats")
+def dashboard_stats() -> dict:
+    from src.audit import check_db_health
+    recent = get_recent_decisions(limit=200)
+    stats = get_dashboard_stats(recent)
+    last_10 = recent[:10]
+    scores = [d["score"] for d in recent if "score" in d]
+    spike = check_fraud_spike(scores, window=100, threshold=_operating_threshold)
+    drift = {"drift_checked": False, "reason": "Insufficient data"} if len(recent) < 10 else check_drift(
+        __import__("pandas").DataFrame([{
+            "amount_log": __import__("numpy").log1p(d.get("amount", 0)),
+            "high_amount_flag": int(d.get("amount", 0) > 200000)
+        } for d in recent]),
+        ["amount_log", "high_amount_flag"]
+    )
+    return {
+        "stats": stats,
+        "last_10_decisions": last_10,
+        "spike_alert": spike,
+        "drift_alert": drift,
+        "db_healthy": check_db_health(),
+        "model_version": MODEL_VERSION,
+        "operating_threshold": _operating_threshold,
+    }
+
+
+# Serves the live monitoring dashboard HTML page
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard() -> HTMLResponse:
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RazorSentry — Fraud Operations Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 24px; }
+  h1 { font-size: 1.4rem; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
+  .subtitle { font-size: 0.8rem; color: #64748b; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: #1e2433; border-radius: 10px; padding: 20px; border: 1px solid #2d3748; }
+  .card .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .card .value { font-size: 2rem; font-weight: 700; }
+  .card .value.block { color: #f87171; }
+  .card .value.review { color: #fbbf24; }
+  .card .value.approve { color: #34d399; }
+  .card .value.total { color: #60a5fa; }
+  .card .value.latency { color: #a78bfa; }
+  .alerts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .alert-box { background: #1e2433; border-radius: 10px; padding: 16px; border: 1px solid #2d3748; }
+  .alert-box .alert-title { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .alert-box .alert-status { font-size: 0.95rem; font-weight: 600; }
+  .alert-ok { color: #34d399; }
+  .alert-warn { color: #fbbf24; }
+  .alert-danger { color: #f87171; }
+  .table-section { background: #1e2433; border-radius: 10px; border: 1px solid #2d3748; overflow: hidden; margin-bottom: 24px; }
+  .table-header { padding: 16px 20px; font-size: 0.85rem; font-weight: 600; border-bottom: 1px solid #2d3748; color: #94a3b8; }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 10px 16px; text-align: left; font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #2d3748; }
+  td { padding: 10px 16px; font-size: 0.8rem; border-bottom: 1px solid #1a2035; font-family: 'SF Mono', 'Fira Code', monospace; }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+  .badge.BLOCK { background: #7f1d1d; color: #f87171; }
+  .badge.REVIEW { background: #78350f; color: #fbbf24; }
+  .badge.APPROVE { background: #064e3b; color: #34d399; }
+  .footer { font-size: 0.72rem; color: #475569; text-align: center; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #34d399; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  #last-updated { color: #475569; font-size: 0.72rem; }
+</style>
+</head>
+<body>
+<h1>🛡️ RazorSentry</h1>
+<p class="subtitle"><span class="dot"></span>Fraud Operations Dashboard &nbsp;|&nbsp; <span id="last-updated">Loading...</span></p>
+
+<div class="grid">
+  <div class="card"><div class="label">Total Today</div><div class="value total" id="total">—</div></div>
+  <div class="card"><div class="label">Blocked</div><div class="value block" id="blocked">—</div></div>
+  <div class="card"><div class="label">Review</div><div class="value review" id="review">—</div></div>
+  <div class="card"><div class="label">Approved</div><div class="value approve" id="approved">—</div></div>
+  <div class="card"><div class="label">Avg Latency</div><div class="value latency" id="latency">—</div></div>
+</div>
+
+<div class="alerts">
+  <div class="alert-box">
+    <div class="alert-title">⚡ Fraud Spike Monitor</div>
+    <div class="alert-status" id="spike-status">Loading...</div>
+    <div style="font-size:0.72rem;color:#64748b;margin-top:6px" id="spike-detail"></div>
+  </div>
+  <div class="alert-box">
+    <div class="alert-title">📊 Feature Drift Monitor</div>
+    <div class="alert-status" id="drift-status">Loading...</div>
+    <div style="font-size:0.72rem;color:#64748b;margin-top:6px" id="drift-detail"></div>
+  </div>
+</div>
+
+<div class="table-section">
+  <div class="table-header">Last 10 Decisions</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Transaction ID</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Score</th>
+        <th>Decision</th>
+        <th>Latency</th>
+      </tr>
+    </thead>
+    <tbody id="decisions-body">
+      <tr><td colspan="7" style="color:#475569;text-align:center;padding:24px">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  Model: <span id="model-ver">—</span> &nbsp;|&nbsp;
+  Threshold: <span id="threshold">—</span> &nbsp;|&nbsp;
+  DB: <span id="db-health">—</span> &nbsp;|&nbsp;
+  Auto-refresh every 10s
+</div>
+
+<script>
+async function refresh() {
+  try {
+    const res = await fetch('/dashboard/stats');
+    const data = await res.json();
+    const s = data.stats;
+
+    document.getElementById('total').textContent = s.total_today;
+    document.getElementById('blocked').textContent = s.blocked;
+    document.getElementById('review').textContent = s.review;
+    document.getElementById('approved').textContent = s.approved;
+    document.getElementById('latency').textContent = s.avg_latency_ms + 'ms';
+    document.getElementById('model-ver').textContent = data.model_version;
+    document.getElementById('threshold').textContent = data.operating_threshold;
+    document.getElementById('db-health').textContent = data.db_healthy ? '✅ Connected' : '❌ Unreachable';
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    const spike = data.spike_alert;
+    const spikeEl = document.getElementById('spike-status');
+    const spikeDetail = document.getElementById('spike-detail');
+    if (spike.spike_detected) {
+      spikeEl.textContent = '🔴 SPIKE DETECTED';
+      spikeEl.className = 'alert-status alert-danger';
+      spikeDetail.textContent = 'EWMA rate: ' + (spike.ewma_rate * 100).toFixed(2) + '%';
+    } else {
+      spikeEl.textContent = '✅ Normal';
+      spikeEl.className = 'alert-status alert-ok';
+      spikeDetail.textContent = 'EWMA rate: ' + (spike.ewma_rate * 100).toFixed(2) + '%';
+    }
+
+    const drift = data.drift_alert;
+    const driftEl = document.getElementById('drift-status');
+    const driftDetail = document.getElementById('drift-detail');
+    if (!drift.drift_checked) {
+      driftEl.textContent = '⏳ Insufficient data';
+      driftEl.className = 'alert-status alert-warn';
+      driftDetail.textContent = drift.reason || '';
+    } else if (drift.alert) {
+      driftEl.textContent = '🔴 DRIFT ALERT (PSI > 0.2)';
+      driftEl.className = 'alert-status alert-danger';
+      driftDetail.textContent = 'Max PSI: ' + drift.max_psi;
+    } else if (drift.warn) {
+      driftEl.textContent = '🟡 Moderate drift (PSI > 0.1)';
+      driftEl.className = 'alert-status alert-warn';
+      driftDetail.textContent = 'Max PSI: ' + drift.max_psi;
+    } else {
+      driftEl.textContent = '✅ Stable';
+      driftEl.className = 'alert-status alert-ok';
+      driftDetail.textContent = 'Max PSI: ' + (drift.max_psi || 0);
+    }
+
+    const tbody = document.getElementById('decisions-body');
+    const rows = data.last_10_decisions;
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="color:#475569;text-align:center;padding:24px">No decisions yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(d => {
+      const ts = d.timestamp ? new Date(d.timestamp).toLocaleTimeString() : '—';
+      const tid = d.transaction_id || '—';
+      const amt = d.amount ? '₹' + Number(d.amount).toLocaleString('en-IN', {maximumFractionDigits: 0}) : '—';
+      const score = d.score !== undefined ? d.score.toFixed(4) : '—';
+      const lat = d.latency_ms ? d.latency_ms.toFixed(1) + 'ms' : '—';
+      const dec = d.decision || '—';
+      const type = d.transaction_type || '—';
+      return '<tr>' +
+        '<td>' + ts + '</td>' +
+        '<td>' + tid.substring(0, 12) + '...</td>' +
+        '<td>' + type + '</td>' +
+        '<td>' + amt + '</td>' +
+        '<td>' + score + '</td>' +
+        '<td><span class="badge ' + dec + '">' + dec + '</span></td>' +
+        '<td>' + lat + '</td>' +
+        '</tr>';
+    }).join('');
+  } catch(e) {
+    document.getElementById('last-updated').textContent = 'Error fetching data';
+  }
+}
+
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>"""
+    return HTMLResponse(content=html)

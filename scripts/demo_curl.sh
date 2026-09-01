@@ -93,6 +93,37 @@ curl -s -X POST http://localhost:8000/webhook/razorpay \
   }' | python3 -m json.tool
 echo ""
 
+echo "=== Async Scoring ==="
+JOB_RESPONSE=$(curl -s -X POST http://localhost:8000/score/async \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "ASYNC_DEMO_001",
+    "step": 1,
+    "type": "CASH_OUT",
+    "amount": 175000.0,
+    "nameOrig": "C555666777",
+    "oldbalanceOrg": 175000.0,
+    "newbalanceOrig": 0.0,
+    "nameDest": "C888999000",
+    "oldbalanceDest": 0.0,
+    "newbalanceDest": 175000.0
+  }')
+echo $JOB_RESPONSE | python3 -m json.tool
+JOB_ID=$(echo $JOB_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
+echo ""
+echo "=== Polling for async result (waiting 4 seconds) ==="
+sleep 4
+curl -s http://localhost:8000/score/result/$JOB_ID | python3 -m json.tool
+
+echo ""
+echo "=== Dashboard Stats ==="
+curl -s http://localhost:8000/dashboard/stats | python3 -m json.tool | head -20
+
+echo ""
+echo "=== Open dashboard in browser ==="
+echo "http://localhost:8000/dashboard"
+
+echo ""
 echo "============================================"
 echo " Demo complete."
 echo "============================================"

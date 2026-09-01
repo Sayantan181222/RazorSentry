@@ -52,6 +52,25 @@ async def test_ready(client: AsyncClient, model_available: bool):
         assert response.json()["detail"]["ready"] is False
 
 
+# Tests that the dashboard HTML endpoint returns 200
+@pytest.mark.anyio
+async def test_dashboard(client: AsyncClient):
+    response = await client.get("/dashboard")
+    assert response.status_code == 200
+    assert "RazorSentry" in response.text
+    assert "<html" in response.text
+
+
+# Tests that the dashboard stats endpoint returns 200 and required fields
+@pytest.mark.anyio
+async def test_dashboard_stats(client: AsyncClient):
+    response = await client.get("/dashboard/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert "stats" in data
+    assert "last_10_decisions" in data
+
+
 # Tests that the score endpoint returns a valid response structure
 @pytest.mark.anyio
 async def test_score_returns_structure(client: AsyncClient, model_available: bool):
