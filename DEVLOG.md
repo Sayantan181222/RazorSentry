@@ -125,6 +125,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** The dashboard uses plain JavaScript fetch with no framework. In production this would be a proper React app with WebSocket push instead of polling, connected to a time-series database like InfluxDB for historical trends. For a buildathon demo polling every 10 seconds is sufficient and has zero build complexity
 
 ---
+### High Level Design Document
+**What:** Rewrote ARCHITECTURE.md as a full production HLD with ASCII architecture diagram, throughput analysis, bottleneck analysis, privacy design table, future scope, and model card summary
+**Why:** A system that cannot be explained to an engineer in one document cannot be trusted in production. The HLD forces honest accounting of what the system can and cannot do at scale
+**Relevance to Track 02:** Razorpay evaluates build quality and whether you trust the system. Documenting the four bottlenecks (SHAP latency, model memory, sync DB writes, single RQ worker) with their mitigations shows production thinking that goes beyond the demo
+**Honest note:** Current estimated throughput is 60-80 TPS synchronous. Razorpay's peak is 400-800 TPS. The gap is real and documented honestly — closing it requires Triton, Kafka, and horizontal scaling which are in future scope
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**
