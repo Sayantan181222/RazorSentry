@@ -95,8 +95,13 @@ async def lifespan(app: FastAPI):
     yield
 
 
-# Rate limiter — 60 score requests per minute per IP
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+# Rate limiter — 60 score requests per minute per IP (disabled in LOAD_TEST_MODE)
+LOAD_TEST_MODE = os.getenv("LOAD_TEST_MODE", "false").lower() == "true"
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[] if LOAD_TEST_MODE else ["60/minute"],
+    enabled=not LOAD_TEST_MODE,
+)
 
 app = FastAPI(title="RazorSentry", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter

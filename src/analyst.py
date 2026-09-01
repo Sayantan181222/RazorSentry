@@ -1,5 +1,3 @@
-# LLM is NEVER in the decision path — it only drafts notes after the model has already decided REVIEW
-
 import json
 import os
 import urllib.request

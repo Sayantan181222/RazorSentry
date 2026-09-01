@@ -1,4 +1,6 @@
 # Locust load test — simulates concurrent users hitting RazorSentry scoring endpoints
+# Run with: LOAD_TEST_MODE=true docker compose up -d first, then:
+# locust -f locustfile.py --host http://localhost:8000 --users 100 --spawn-rate 10 --run-time 60s --headless --csv=../reports/load_test --only-summary
 
 import random
 from locust import HttpUser, between, task

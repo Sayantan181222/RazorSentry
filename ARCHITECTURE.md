@@ -164,10 +164,13 @@ In-memory PSI history (resets on restart — PostgreSQL persistence is future sc
 
 | Metric | Current | Target (production) |
 |--------|---------|---------------------|
-| Sync scoring latency (p50) | ~55ms | <20ms |
-| Sync scoring latency (p95) | ~100ms | <50ms |
+| Sync scoring latency (p50) | ~48ms (load test) / ~15ms (isolated) | <20ms |
+| Sync scoring latency (p95) | ~540ms (100 users load) / ~35ms (isolated) | <50ms |
 | Workers | 4 uvicorn processes | 8-16 behind nginx |
-| Estimated sync throughput | 60-80 TPS | 400-800 TPS |
+| Measured throughput (load test) | 219.89 TPS | 400-800 TPS |
+| Load test config | 100 concurrent users, 60s, MacBook Air M1 | — |
+| p50 latency (measured) | 48ms | <20ms |
+| p95 latency (measured) | 540ms | <50ms |
 | Async queue depth (burst) | Unbounded (Redis) | Unbounded (Redis/Kafka) |
 | DB writes per decision | 1 (sync PostgreSQL) | 1 (async PostgreSQL) |
 | DB pool size | 10 connections | 50 connections |

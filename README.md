@@ -212,17 +212,21 @@ Tested with [Locust](https://locust.io) — 100 concurrent users, 60 seconds, ag
 
 | Metric | /score [legit] | /score [fraud] | /health |
 |--------|---------------|----------------|---------|
-| Requests | 13,000 | 3,248 | 1,618 |
-| Failures | 12,818 (rate-limited 429) | 3,190 (rate-limited 429) | 0 (0.00%) |
-| Median latency (p50) | 3ms | 3ms | 3ms |
-| 95th percentile (p95) | 8ms | 8ms | 7ms |
-| 99th percentile (p99) | 34ms | 43ms | 16ms |
-| Requests/sec | 219.72 | 54.90 | 27.35 |
+| Requests | 9,440 | 2,412 | 1,174 |
+| Failures | 29 (0.31%) | 7 (0.29%) | 0 (0.00%) |
+| Median latency (p50) | 48ms | 48ms | 12ms |
+| 95th percentile (p95) | 540ms | 580ms | 280ms |
+| 99th percentile (p99) | 870ms | 860ms | 600ms |
+| Requests/sec | 159.35 | 40.72 | 19.82 |
 
-**Overall throughput:** 301.96 requests/second sustained across 100 concurrent users.
+![Load Test Summary](reports/load_test_summary.png)
+
+**Overall throughput:** 219.89 requests/second sustained across 100 concurrent users (99.72% success rate).
+
+**Rate Limiting & Benchmark Note:** The first load test run showed 89.6% failures — all 429 rate-limit rejections from the per-IP throttle (60/min). The rate limiter is intentional for production but was disabled for this benchmark via `LOAD_TEST_MODE=true` env flag. The numbers above represent raw infrastructure throughput without the rate limit.
 
 **Infrastructure context:** Razorpay processes ~58-80 TPS average and 400-800 TPS peak.
-RazorSentry achieves 301.96 TPS on a single MacBook Air M1 with 4 workers.
+RazorSentry achieves 219.89 TPS on a single MacBook Air M1 with 4 workers.
 Horizontal scaling (more workers or machines) grows throughput linearly — the
 bottleneck is SHAP computation (~10-15ms per request) not the API layer.
 
