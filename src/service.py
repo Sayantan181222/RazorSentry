@@ -493,494 +493,483 @@ def dashboard() -> HTMLResponse:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#05070F">
 <title>RazorSentry — Fraud Operations Dashboard</title>
 <style>
 :root {
-  --bg: #05070F;
-  --text: #E7EDF8;
-  --muted: #8B95AD;
-  --faint: #5A6478;
+  --bg: #F3F5F9;
+  --card: #FFFFFF;
+  --line: #E8ECF2;
+  --line2: #F0F3F8;
+  --track: #EDEFF4;
+  --text: #101828;
+  --text2: #5B6B85;
+  --text3: #98A2B3;
+  --green: #12B76A;   --greenD: #079451;  --greenT: #E9F9F0;
+  --red: #F04438;     --redD: #B42318;    --redT: #FEF3F2;
+  --amber: #F79009;   --amberD: #B54708;  --amberT: #FEF0E6;
+  --indigo: #5A5AE6;  --indigoD: #444CE7; --indigoT: #EEF0FF;
+  --violet: #8B5CF6;  --violetD: #6941C6; --violetT: #F4F0FF;
   --mono: 'SF Mono','Cascadia Code','Fira Code','JetBrains Mono',Consolas,monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg); color: var(--text);
-  min-height: 100vh; padding: 22px clamp(14px, 3vw, 40px) 30px;
-  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  padding: 20px clamp(12px, 2.5vw, 32px); -webkit-font-smoothing: antialiased;
 }
-::selection { background: rgba(129,140,248,.4); }
-.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+::selection { background: rgba(90,90,230,.18); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.ic { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-/* ---------- Aurora background ---------- */
-.aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-.blob { position: absolute; border-radius: 50%; filter: blur(110px); opacity: .5; will-change: transform; }
-.b1 { width: 46vw; height: 46vw; min-width: 520px; min-height: 520px;
-  background: radial-gradient(circle at 35% 35%, #7C3AED 0%, rgba(124,58,237,0) 62%);
-  top: -18vh; left: -10vw; animation: d1 26s ease-in-out infinite alternate; }
-.b2 { width: 40vw; height: 40vw; min-width: 460px; min-height: 460px;
-  background: radial-gradient(circle at 60% 40%, #0EA5E9 0%, rgba(14,165,233,0) 60%);
-  top: 8vh; right: -12vw; animation: d2 21s ease-in-out infinite alternate; }
-.b3 { width: 52vw; height: 52vw; min-width: 600px; min-height: 600px;
-  background: radial-gradient(circle at 50% 50%, #4F46E5 0%, rgba(79,70,229,0) 64%);
-  bottom: -24vh; left: 22vw; animation: d3 31s ease-in-out infinite alternate; }
-.b4 { width: 26vw; height: 26vw; min-width: 300px; min-height: 300px; opacity: .32;
-  background: radial-gradient(circle at 50% 50%, #D946EF 0%, rgba(217,70,239,0) 60%);
-  top: 55vh; left: -8vw; animation: d4 24s ease-in-out infinite alternate; }
-@keyframes d1 { to { transform: translate3d(9vw, 7vh, 0) scale(1.18); } }
-@keyframes d2 { to { transform: translate3d(-8vw, 10vh, 0) scale(1.12); } }
-@keyframes d3 { to { transform: translate3d(-10vw, -8vh, 0) scale(1.08); } }
-@keyframes d4 { to { transform: translate3d(10vw, -10vh, 0) scale(1.25); } }
-.grid-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: linear-gradient(rgba(139,149,173,.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139,149,173,.05) 1px, transparent 1px);
-  background-size: 46px 46px;
-  -webkit-mask-image: radial-gradient(ellipse 85% 60% at 50% 8%, #000 25%, transparent 78%);
-  mask-image: radial-gradient(ellipse 85% 60% at 50% 8%, #000 25%, transparent 78%); }
+.app { max-width: 1320px; margin: 0 auto; display: flex; gap: 20px; align-items: flex-start; }
 
-/* ---------- Glass ---------- */
-.shell { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-.glass {
-  position: relative;
-  background: linear-gradient(165deg, rgba(255,255,255,.06), rgba(255,255,255,.015) 55%, rgba(129,140,248,.03));
-  border: 1px solid rgba(255,255,255,.09);
-  border-radius: 18px;
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
-  box-shadow: 0 24px 60px -20px rgba(2,6,18,.75), inset 0 1px 0 rgba(255,255,255,.07);
-}
-.glass::before { content: ''; position: absolute; top: -1px; left: 10%; right: 10%; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(167,139,250,.55), transparent); pointer-events: none; }
+/* ---------- Sidebar ---------- */
+.sidebar { width: 232px; flex: none; background: var(--card); border: 1px solid var(--line);
+  border-radius: 16px; padding: 18px 14px; position: sticky; top: 20px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 10px 28px -16px rgba(16,24,40,.1);
+  display: flex; flex-direction: column; gap: 20px; }
+.sb-logo { display: flex; align-items: center; gap: 11px; padding: 2px 6px 14px; border-bottom: 1px solid var(--line2); }
+.sb-name { font-size: 1rem; font-weight: 800; letter-spacing: -.01em; color: var(--text); }
+.sb-tag { font-size: .6rem; color: var(--text3); margin-top: 1px; }
+.sb-nav { display: flex; flex-direction: column; gap: 3px; }
+.sb-link { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 10px;
+  font-size: .76rem; font-weight: 600; color: var(--text2); text-decoration: none; transition: background .15s, color .15s; }
+.sb-link:hover { background: #F5F7FA; color: var(--text); }
+.sb-link.active { background: var(--indigoT); color: var(--indigoD); }
+.sb-link .ic { color: var(--text3); }
+.sb-link.active .ic { color: var(--indigoD); }
+.sb-sys { margin-top: auto; background: #F8FAFC; border: 1px solid var(--line2); border-radius: 12px; padding: 12px; }
+.sb-sys-title { font-size: .58rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text3); margin-bottom: 9px; }
+.sys-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .68rem; padding: 4px 0; }
+.sys-k { color: var(--text2); }
+.sys-v { color: var(--text); font-weight: 600; }
+.sys-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; }
+.sys-dot.bad { background: var(--red); }
 
-/* ---------- Icons ---------- */
-.ic { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8;
-  stroke-linecap: round; stroke-linejoin: round; flex: none; }
+/* ---------- Main ---------- */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.mobile-brand { display: none; }
 
-/* ---------- Header ---------- */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 22px; flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: 14px; }
-.brand > svg { filter: drop-shadow(0 4px 18px rgba(129,140,248,.5)); }
-h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
-  background: linear-gradient(100deg, #E0F2FE 0%, #67E8F9 28%, #A78BFA 62%, #F0ABFC 100%);
-  background-size: 220% 100%;
-  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 16px rgba(103,232,249,.25));
-  animation: sheen 9s linear infinite; }
-@keyframes sheen { to { background-position: 220% 0; } }
-.subtitle { display: flex; align-items: center; gap: 8px; font-size: .74rem; color: var(--muted); margin-top: 4px; flex-wrap: wrap; }
-.live-dot { width: 7px; height: 7px; border-radius: 50%; flex: none;
-  background: linear-gradient(135deg,#34D399,#22D3FE); box-shadow: 0 0 10px rgba(52,211,153,.9);
-  animation: pulse 2.2s ease-in-out infinite; }
-.live-dot.bad { background: #FB7185; box-shadow: 0 0 10px rgba(251,113,133,.9); }
-.live-txt { color: #6EE7B7; font-weight: 700; letter-spacing: .14em; font-size: .62rem; }
-@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.85); } }
-.hchips { display: flex; gap: 8px; flex-wrap: wrap; }
-.f-chip { display: inline-flex; align-items: center; gap: 7px; font-size: .68rem; color: var(--muted);
-  padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.04); }
-.f-chip .ic { width: 13px; height: 13px; color: #818CF8; }
-.f-chip b { color: #CBD5E1; font-weight: 600; }
-.dot-sm { width: 7px; height: 7px; border-radius: 50%; background: #34D399; box-shadow: 0 0 8px rgba(52,211,153,.8); }
-.dot-sm.bad { background: #FB7185; box-shadow: 0 0 8px rgba(251,113,133,.8); }
+.pagehead { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ph-title { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; }
+.ph-sub { display: flex; align-items: center; gap: 8px; font-size: .72rem; color: var(--text2); margin-top: 5px; flex-wrap: wrap; }
+.livedot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--greenT); animation: blink 2.4s ease-in-out infinite; }
+.livedot.bad { background: var(--red); box-shadow: 0 0 0 3px var(--redT); }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.livetxt { color: var(--greenD); font-weight: 700; letter-spacing: .12em; font-size: .6rem; }
+.ph-right { display: flex; align-items: center; gap: 10px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: .66rem; font-weight: 600;
+  padding: 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--text2); }
+.pill .ic { width: 12px; height: 12px; color: var(--indigo); }
 
-/* ---------- Gradient text ---------- */
-.grad-txt { -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
-.g-cyan   { background: linear-gradient(135deg,#A5F3FC,#22D3EE 60%,#3B82F6); filter: drop-shadow(0 3px 16px rgba(34,211,238,.35)); }
-.g-red    { background: linear-gradient(135deg,#FECDD3,#FB7185 55%,#E11D48); filter: drop-shadow(0 3px 16px rgba(244,63,94,.35)); }
-.g-amber  { background: linear-gradient(135deg,#FDE68A,#FBBF24 55%,#D97706); filter: drop-shadow(0 3px 16px rgba(245,158,11,.3)); }
-.g-green  { background: linear-gradient(135deg,#A7F3D0,#34D399 55%,#059669); filter: drop-shadow(0 3px 16px rgba(16,185,129,.35)); }
-.g-violet { background: linear-gradient(135deg,#DDD6FE,#A78BFA 55%,#7C3AED); filter: drop-shadow(0 3px 16px rgba(167,139,250,.4)); }
+/* ---------- Cards ---------- */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 10px 28px -18px rgba(16,24,40,.1); }
 
-/* ---------- KPI cards ---------- */
-.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
-.kpi { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 8px; overflow: hidden;
-  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
-.kpi:hover { transform: translateY(-3px); border-color: rgba(129,140,248,.35);
-  box-shadow: 0 30px 70px -22px rgba(2,6,18,.85), 0 0 30px -6px rgba(129,140,248,.25), inset 0 1px 0 rgba(255,255,255,.08); }
-.kpi-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.kpi-label { display: inline-flex; align-items: center; gap: 7px; font-size: .62rem; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-.kpi-ic { display: inline-flex; color: var(--muted); }
-.kpi-ic .ic { width: 13px; height: 13px; }
-.kpi-value { font-size: 2.05rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
-.kpi-spark { margin-top: auto; }
-.spark { width: 100%; height: 34px; display: block; overflow: visible; }
-.kpi.flash { animation: kpiFlash .8s ease; }
-@keyframes kpiFlash {
-  0% { box-shadow: 0 0 0 1px rgba(129,140,248,.55), 0 0 34px -4px rgba(129,140,248,.45), inset 0 1px 0 rgba(255,255,255,.07); }
-  100% { box-shadow: 0 24px 60px -20px rgba(2,6,18,.75), inset 0 1px 0 rgba(255,255,255,.07); }
-}
-.d-chip { font-size: .6rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;
-  font-variant-numeric: tabular-nums; white-space: nowrap; }
-.d-pos  { color: #6EE7B7; background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.3); }
-.d-neg  { color: #FDA4AF; background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3); }
-.d-neu  { color: #67E8F9; background: rgba(34,211,238,.1); border: 1px solid rgba(34,211,238,.28); }
-.d-zero { color: var(--faint); background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+/* ---------- KPI ---------- */
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.kpi { padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  transition: transform .18s ease, box-shadow .18s ease; }
+.kpi:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(16,24,40,.05), 0 18px 40px -18px rgba(16,24,40,.18); }
+.kpi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.kpi-ic { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.kpi-ic .ic { width: 16px; height: 16px; }
+.ti-indigo { background: var(--indigoT); color: var(--indigo); }
+.ti-red    { background: var(--redT);    color: var(--red); }
+.ti-amber  { background: var(--amberT);  color: var(--amber); }
+.ti-green  { background: var(--greenT);  color: var(--green); }
+.ti-violet { background: var(--violetT); color: var(--violet); }
+.kpi-label { font-size: .64rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--text2); padding-top: 8px; }
+.kpi-value { font-size: 1.8rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.v-navy { color: var(--text); } .v-red { color: var(--redD); } .v-amber { color: var(--amberD); }
+.v-green { color: var(--greenD); } .v-violet { color: var(--violetD); }
+.kpi-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.kpi-spark { flex: 1; min-width: 0; }
+.spark { width: 100%; height: 34px; display: block; }
+
+/* delta pills (FinSequence style) */
+.dp { display: inline-flex; align-items: center; gap: 4px; font-size: .64rem; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dp.up   { color: var(--greenD); background: var(--greenT); }
+.dp.down { color: var(--redD);   background: var(--redT); }
+.dp.flat { color: var(--text2);  background: #F2F4F7; }
 
 /* ---------- Panels ---------- */
-.grid-2  { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
-.grid-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.panel { padding: 18px 20px; }
+.grid-2 { display: grid; grid-template-columns: 1.12fr 1fr; gap: 16px; }
+.grid-2b { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.panel { padding: 18px 20px; scroll-margin-top: 24px; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-.panel-title { display: inline-flex; align-items: center; gap: 8px; font-size: .66rem; font-weight: 700;
-  letter-spacing: .13em; text-transform: uppercase; color: #B6C2D9; }
-.panel-title .ic { color: #818CF8; }
-.panel-aux { font-size: .64rem; color: var(--faint); }
-.panel-sub { font-size: .7rem; color: var(--muted); line-height: 1.55; }
-.empty { padding: 20px 0; text-align: center; color: var(--faint); font-size: .7rem; }
+.panel-title { display: inline-flex; align-items: center; gap: 8px; font-size: .68rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
+.panel-title .ic { color: var(--indigo); }
+.panel-aux { font-size: .64rem; color: var(--text3); }
+.panel-sub { font-size: .7rem; color: var(--text2); line-height: 1.55; }
+.empty { padding: 18px 0; text-align: center; color: var(--text3); font-size: .72rem; }
 
-/* status chips */
-.chip { display: inline-flex; align-items: center; gap: 6px; font-size: .64rem; font-weight: 700;
-  letter-spacing: .1em; padding: 5px 11px; border-radius: 999px; text-transform: uppercase; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: .6rem; font-weight: 700;
+  letter-spacing: .08em; padding: 4px 11px; border-radius: 999px; text-transform: uppercase; }
 .chip .cdot { width: 6px; height: 6px; border-radius: 50%; }
-.chip.ok { color: #6EE7B7; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.35); box-shadow: 0 0 16px rgba(16,185,129,.12); }
-.chip.ok .cdot { background: #34D399; box-shadow: 0 0 8px rgba(52,211,153,.8); }
-.chip.warn { color: #FCD34D; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.35); box-shadow: 0 0 16px rgba(245,158,11,.12); }
-.chip.warn .cdot { background: #FBBF24; box-shadow: 0 0 8px rgba(251,191,36,.8); }
-.chip.danger { color: #FDA4AF; background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.45);
-  box-shadow: 0 0 20px rgba(244,63,94,.2); animation: chipPulse 1.6s ease-in-out infinite; }
-.chip.danger .cdot { background: #FB7185; box-shadow: 0 0 8px rgba(251,113,133,.9); }
-@keyframes chipPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(244,63,94,.28); } 50% { box-shadow: 0 0 0 7px rgba(244,63,94,0); } }
+.chip.ok { color: var(--greenD); background: var(--greenT); border: 1px solid rgba(18,183,106,.3); }
+.chip.ok .cdot { background: var(--green); }
+.chip.warn { color: var(--amberD); background: var(--amberT); border: 1px solid rgba(247,144,9,.3); }
+.chip.warn .cdot { background: var(--amber); }
+.chip.danger { color: var(--redD); background: var(--redT); border: 1px solid rgba(240,68,56,.32); }
+.chip.danger .cdot { background: var(--red); animation: blink 1.8s infinite; }
 
 /* ---------- Distribution ---------- */
-.dist-layout { display: flex; align-items: center; gap: 22px; }
-.donut-wrap { position: relative; width: 148px; height: 148px; flex: none; }
-#donut { width: 148px; height: 148px; display: block; filter: drop-shadow(0 6px 18px rgba(3,6,18,.6)); }
-.dn-track { fill: none; stroke: rgba(255,255,255,.06); stroke-width: 13; }
-.dn-seg { fill: none; stroke-width: 13; }
-.dn-block   { stroke: url(#dg-block);   filter: drop-shadow(0 0 6px rgba(244,63,94,.4)); }
-.dn-review  { stroke: url(#dg-review);  filter: drop-shadow(0 0 6px rgba(245,158,11,.35)); }
-.dn-approve { stroke: url(#dg-approve); filter: drop-shadow(0 0 6px rgba(16,185,129,.35)); }
+.dist-layout { display: flex; align-items: center; gap: 26px; }
+.donut-wrap { position: relative; width: 150px; height: 150px; flex: none; }
+.donut { width: 150px; height: 150px; display: block; }
+.dn-track { fill: none; stroke: var(--track); stroke-width: 14; }
+.dn-seg { fill: none; stroke-width: 14; }
 .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.dc-val { font-size: 1.55rem; font-weight: 800; }
-.dc-lab { font-size: .58rem; letter-spacing: .16em; color: var(--faint); text-transform: uppercase; }
-.dist-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.dist-bar { display: flex; height: 12px; border-radius: 7px; overflow: hidden;
-  background: rgba(255,255,255,.05); box-shadow: inset 0 1px 3px rgba(0,0,0,.45); }
-.dist-block   { background: linear-gradient(180deg,#FB7185,#E11D48); box-shadow: 0 0 10px rgba(244,63,94,.4); }
-.dist-review  { background: linear-gradient(180deg,#FCD34D,#F59E0B); box-shadow: 0 0 10px rgba(245,158,11,.35); }
-.dist-approve { background: linear-gradient(180deg,#6EE7B7,#059669); box-shadow: 0 0 10px rgba(16,185,129,.35); }
-.dist-legend { display: flex; gap: 16px; flex-wrap: wrap; }
-.lg-item { display: inline-flex; align-items: center; gap: 6px; font-size: .7rem; color: var(--muted); }
-.lg-dot { width: 8px; height: 8px; border-radius: 3px; background: var(--c); box-shadow: 0 0 10px var(--c); }
-.lg-val { font-weight: 700; color: #DDE5F2; }
-.dist-note { font-size: .68rem; color: var(--faint); }
+.dc-val { font-size: 1.45rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
+.dc-lab { font-size: .56rem; letter-spacing: .16em; color: var(--text3); text-transform: uppercase; }
+.dist-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.dist-bar { display: flex; height: 12px; border-radius: 7px; overflow: hidden; background: var(--track); }
+.dist-block { background: linear-gradient(180deg,#F97066,#F04438); }
+.dist-review { background: linear-gradient(180deg,#FDB022,#F79009); }
+.dist-approve { background: linear-gradient(180deg,#3CC97C,#12B76A); }
+.dist-legend { display: flex; gap: 18px; flex-wrap: wrap; }
+.lg { display: inline-flex; align-items: center; gap: 7px; font-size: .72rem; color: var(--text2); }
+.lgd { width: 9px; height: 9px; border-radius: 3px; }
+.lg b { font-weight: 700; color: var(--text); }
+.dist-note { font-size: .68rem; color: var(--text3); }
 
 /* ---------- Spike monitor ---------- */
 .spike-hero { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
-.ewma-val { font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; }
-.ewma-lab { font-size: .66rem; color: var(--muted); }
-.meter { margin: 4px 0 12px; }
-.meter-track { position: relative; height: 10px; border-radius: 6px; background: rgba(255,255,255,.06);
-  overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.45); }
-.meter-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg,#34D399,#22D3EE);
-  box-shadow: 0 0 14px rgba(34,211,238,.5); transition: width .7s cubic-bezier(.22,1,.36,1), background .4s; }
-.meter-fill.danger { background: linear-gradient(90deg,#FB7185,#E11D48); box-shadow: 0 0 16px rgba(244,63,94,.6);
-  animation: meterPulse 1.2s ease-in-out infinite; }
-@keyframes meterPulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
-.meter-scale { display: flex; justify-content: space-between; font-size: .6rem; color: var(--faint); margin-top: 5px; }
+.ewma-val { font-size: 1.85rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.ewma-lab { font-size: .64rem; color: var(--text2); }
+.meter { margin: 2px 0 12px; }
+.meter-track { position: relative; height: 12px; border-radius: 7px; background: var(--track); overflow: hidden; }
+.meter-fill { height: 100%; border-radius: 7px; background: var(--green); transition: width .6s ease, background .3s; }
+.mtick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(16,24,40,.14); }
+.meter-scale { display: flex; justify-content: space-between; font-size: .58rem; color: var(--text3); margin-top: 6px; }
 
 /* ---------- Drift bars ---------- */
-.drift-meta { font-size: .68rem; color: var(--muted); margin-bottom: 12px; }
+.drift-meta { font-size: .68rem; color: var(--text2); margin-bottom: 12px; }
 .pb-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
-.pb-name { width: 128px; font-size: .66rem; color: #A9B4C9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
-.pb-track { display: block; position: relative; flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.05); }
-.pb-fill { display: block; height: 100%; border-radius: 4px; transition: width .6s ease; }
-.pb-tick { position: absolute; top: -3px; bottom: -3px; width: 1px; background: rgba(255,255,255,.22); }
-.pb-val { width: 70px; text-align: right; font-size: .66rem; flex: none; font-weight: 600; }
-.psi-note { margin-top: 10px; font-size: .62rem; color: var(--faint); }
+.pb-name { width: 128px; font-size: .66rem; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
+.pb-track { display: block; position: relative; flex: 1; height: 8px; border-radius: 5px; background: var(--track); }
+.pb-fill { display: block; height: 100%; border-radius: 5px; transition: width .5s ease; }
+.pb-tick { position: absolute; top: -3px; bottom: -3px; width: 1px; background: rgba(16,24,40,.18); }
+.pb-val { width: 72px; text-align: right; font-size: .66rem; flex: none; font-weight: 700; }
+.psi-note { margin-top: 10px; font-size: .6rem; color: var(--text3); }
 
-/* ---------- PSI history (scrollable) ---------- */
-.psi-scroll { max-height: 335px; overflow-y: auto; overflow-x: hidden; padding-right: 8px;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); }
-.tl-row { display: flex; align-items: center; gap: 8px; padding: 6px 2px;
-  border-bottom: 1px solid rgba(255,255,255,.05); border-radius: 6px; transition: background .15s; }
-.tl-row:hover { background: rgba(129,140,248,.07); }
+/* ---------- PSI history — SCROLLABLE ---------- */
+.psi-scroll { max-height: 340px; overflow-y: auto; overflow-x: hidden; padding-right: 8px; }
+.tl-row { display: flex; align-items: center; gap: 9px; padding: 7px 4px; border-radius: 8px;
+  border-bottom: 1px solid var(--line2); transition: background .15s; }
+.tl-row:hover { background: #F7F9FC; }
 .tl-row:last-child { border-bottom: none; }
-.tl-time { width: 56px; font-size: .64rem; color: var(--muted); flex: none; }
-.tl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
-.tl-dot.ok { background: #34D399; box-shadow: 0 0 8px rgba(52,211,153,.75); }
-.tl-dot.warn { background: #FBBF24; box-shadow: 0 0 8px rgba(251,191,36,.75); }
-.tl-dot.alert { background: #FB7185; box-shadow: 0 0 8px rgba(251,113,133,.8); animation: pulse 1.6s infinite; }
-.tl-track { display: block; flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.05); overflow: hidden; }
-.tl-fill { display: block; height: 100%; border-radius: 3px; }
-.tl-psi { width: 52px; text-align: right; font-size: .66rem; font-weight: 600; flex: none; }
-.tl-n { width: 52px; text-align: right; font-size: .6rem; color: var(--faint); flex: none; }
+.tl-time { width: 58px; font-size: .64rem; color: var(--text2); flex: none; }
+.tl-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.tl-dot.ok { background: var(--green); }
+.tl-dot.warn { background: var(--amber); }
+.tl-dot.alert { background: var(--red); }
+.tl-track { display: block; flex: 1; height: 6px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.tl-fill { display: block; height: 100%; border-radius: 4px; }
+.tl-psi { width: 52px; text-align: right; font-size: .66rem; font-weight: 700; flex: none; }
+.tl-n { width: 50px; text-align: right; font-size: .6rem; color: var(--text3); flex: none; }
 
-/* custom scrollbars */
-.slim-scroll { scrollbar-width: thin; scrollbar-color: rgba(129,140,248,.6) rgba(255,255,255,.05); }
-.slim-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-.slim-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 99px; }
-.slim-scroll::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#818CF8,#22D3EE); border-radius: 99px; }
+/* light scrollbars */
+.slim::-webkit-scrollbar { width: 8px; height: 8px; }
+.slim::-webkit-scrollbar-track { background: transparent; }
+.slim::-webkit-scrollbar-thumb { background: #D5DBE5; border-radius: 8px; border: 2px solid var(--card); }
+.slim::-webkit-scrollbar-thumb:hover { background: #B8C1CE; }
+.slim { scrollbar-width: thin; scrollbar-color: #D5DBE5 var(--card); }
 
 /* ---------- Decisions table ---------- */
-.table-card { overflow: hidden; }
 .table-head { display: flex; align-items: center; justify-content: space-between;
-  padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,.07); }
-.table-title { display: inline-flex; align-items: center; gap: 8px; font-size: .66rem; font-weight: 700;
-  letter-spacing: .13em; text-transform: uppercase; color: #B6C2D9; }
-.table-title .ic { color: #818CF8; }
-.badge-count { font-size: .64rem; color: var(--muted); padding: 4px 10px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.04); }
-.table-wrap { max-height: 470px; overflow: auto; }
+  padding: 15px 20px; border-bottom: 1px solid var(--line); }
+.table-title { display: inline-flex; align-items: center; gap: 8px; font-size: .68rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
+.table-title .ic { color: var(--indigo); }
+.badge-count { font-size: .64rem; color: var(--text2); padding: 4px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: #F8FAFC; }
+.table-wrap { max-height: 460px; overflow: auto; border-radius: 0 0 16px 16px; scroll-margin-top: 24px; }
 table { width: 100%; border-collapse: collapse; }
 th { position: sticky; top: 0; z-index: 2; padding: 10px 16px; text-align: left; font-size: .6rem;
-  font-weight: 700; letter-spacing: .11em; text-transform: uppercase; color: var(--muted);
-  background: rgba(9,13,26,.97); border-bottom: 1px solid rgba(255,255,255,.08); }
-td { padding: 10px 16px; font-size: .74rem; border-bottom: 1px solid rgba(255,255,255,.045); color: #C9D3E4; }
-tbody tr { transition: background .16s ease; }
-tbody tr:hover { background: linear-gradient(90deg, rgba(124,58,237,.12), rgba(34,211,238,.05) 70%); }
+  font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text2);
+  background: #F8FAFC; border-bottom: 1px solid var(--line); }
+td { padding: 10px 16px; font-size: .74rem; border-bottom: 1px solid var(--line2); color: #344054; white-space: nowrap; }
+tbody tr { transition: background .14s ease; }
+tbody tr:hover { background: #F8FAFC; }
 tbody tr:last-child td { border-bottom: none; }
-.ta-r, th.ta-r { text-align: right; }
-.td-muted { color: var(--muted); }
-.td-id { color: #A5B4FC; }
-.td-empty { text-align: center; color: var(--faint); padding: 30px 0; font-size: .74rem; }
+.ta-r { text-align: right; }
+.td-muted { color: var(--text2); }
+.td-id { color: var(--indigoD); }
+.td-empty { text-align: center; color: var(--text3); padding: 30px 0; font-size: .74rem; }
 .type-pill { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: .62rem; font-weight: 600;
-  letter-spacing: .05em; color: #93C5FD; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25); }
-.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
-  font-size: .62rem; font-weight: 700; letter-spacing: .08em; }
-.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 7px currentColor; }
-.badge.BLOCK { color: #FDA4AF; background: rgba(244,63,94,.13); border: 1px solid rgba(244,63,94,.4); box-shadow: 0 0 14px rgba(244,63,94,.15); }
-.badge.REVIEW { color: #FCD34D; background: rgba(245,158,11,.13); border: 1px solid rgba(245,158,11,.4); box-shadow: 0 0 14px rgba(245,158,11,.15); }
-.badge.APPROVE { color: #6EE7B7; background: rgba(16,185,129,.13); border: 1px solid rgba(16,185,129,.4); box-shadow: 0 0 14px rgba(16,185,129,.15); }
-.score-cell { display: inline-flex; flex-direction: column; gap: 4px; min-width: 70px; }
-.score-track { display: block; height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
-.score-fill { display: block; height: 100%; border-radius: 2px; }
+  letter-spacing: .04em; color: var(--indigoD); background: var(--indigoT); }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .62rem; font-weight: 700; letter-spacing: .06em; }
+.badge.BLOCK { color: var(--redD); background: var(--redT); }
+.badge.REVIEW { color: var(--amberD); background: var(--amberT); }
+.badge.APPROVE { color: var(--greenD); background: var(--greenT); }
+.scorecell { display: inline-flex; flex-direction: column; gap: 4px; min-width: 78px; }
+.scorebar { display: block; height: 4px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.scorebar i { display: block; height: 100%; border-radius: 3px; }
 
 /* ---------- Footer ---------- */
-.foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 20px; flex-wrap: wrap; }
-.foot-note { font-size: .66rem; color: var(--faint); }
-.foot-refresh { display: flex; align-items: center; gap: 10px; }
-.refresh-label { font-size: .66rem; color: var(--muted); }
-.refresh-label b { color: #CBD5E1; }
-.refresh-bar { position: relative; width: 150px; height: 4px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
-#refresh-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 0; border-radius: 99px;
-  background: linear-gradient(90deg,#22D3EE,#818CF8,#A855F7); box-shadow: 0 0 10px rgba(129,140,248,.5); }
-#refresh-fill.run { animation: sweep 10s linear forwards; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 2px 6px; }
+.foot-note { font-size: .64rem; color: var(--text3); }
+.foot-note b { color: var(--text2); }
+.foot-right { display: flex; align-items: center; gap: 10px; }
+.refbar { position: relative; width: 140px; height: 5px; border-radius: 99px; background: var(--track); overflow: hidden; }
+#ref-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 0; border-radius: 99px;
+  background: linear-gradient(90deg, var(--indigo), var(--violet)); }
+#ref-fill.run { animation: sweep 10s linear forwards; }
 @keyframes sweep { from { width: 0; } to { width: 100%; } }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
-  .kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); }
   .grid-2, .grid-2b { grid-template-columns: 1fr; }
   .dist-layout { flex-direction: column; }
   .donut-wrap { margin: 0 auto; }
 }
-@media (max-width: 560px) {
-  body { padding: 12px; }
-  h1 { font-size: 1.2rem; }
-  .top { padding: 12px 14px; }
+@media (max-width: 960px) {
+  .sidebar { display: none; }
+  .mobile-brand { display: flex; align-items: center; gap: 10px; }
+  .mobile-brand span { font-size: 1rem; font-weight: 800; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
 }
 </style>
 </head>
 <body>
 
-<div class="aurora" aria-hidden="true">
-  <div class="blob b1"></div><div class="blob b2"></div>
-  <div class="blob b3"></div><div class="blob b4"></div>
-</div>
-<div class="grid-bg" aria-hidden="true"></div>
+<div class="app">
 
-<div class="shell">
-
-  <!-- ======= Header ======= -->
-  <header class="top glass">
-    <div class="brand">
-      <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
+  <!-- ======= Sidebar ======= -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
         <defs>
           <linearGradient id="lg-logo" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#22D3EE"/><stop offset=".55" stop-color="#818CF8"/><stop offset="1" stop-color="#A855F7"/>
+            <stop offset="0" stop-color="#5A5AE6"/><stop offset="1" stop-color="#12B76A"/>
           </linearGradient>
         </defs>
         <path d="M12 1.8l8.6 3.2v6.6c0 5.3-3.7 9-8.6 10.8-4.9-1.8-8.6-5.5-8.6-10.8V5L12 1.8z" fill="url(#lg-logo)"/>
-        <path d="M8.3 12l2.7 2.7 5-5.6" fill="none" stroke="#070A16" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8.3 12l2.7 2.7 5-5.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <div>
-        <h1>RazorSentry</h1>
-        <div class="subtitle">
-          <span class="live-dot" id="live-dot"></span>
-          <span class="live-txt">LIVE</span>
-          <span>Fraud Operations Dashboard</span>
+        <div class="sb-name">RazorSentry</div>
+        <div class="sb-tag">Fraud Operations</div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <a class="sb-link active" href="#top"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Overview</a>
+      <a class="sb-link" href="#panel-spike"><svg class="ic" viewBox="0 0 24 24"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>Spike Monitor</a>
+      <a class="sb-link" href="#panel-drift"><svg class="ic" viewBox="0 0 24 24"><path d="M1 12q2.8-5 5.6 0t5.6 0 5.6 0 5.6 0"/><path d="M1 17q2.8-3.2 5.6 0t5.6 0 5.6 0 5.6 0"/></svg>Feature Drift</a>
+      <a class="sb-link" href="#panel-psi"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.4 2"/></svg>PSI History</a>
+      <a class="sb-link" href="#panel-decisions"><svg class="ic" viewBox="0 0 24 24"><path d="M8.5 6h12M8.5 12h12M8.5 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Decisions</a>
+    </nav>
+    <div class="sb-sys">
+      <div class="sb-sys-title">System</div>
+      <div class="sys-row"><span class="sys-k">Model</span><span class="sys-v mono" id="sys-model">—</span></div>
+      <div class="sys-row"><span class="sys-k">Threshold θ</span><span class="sys-v mono" id="sys-threshold">—</span></div>
+      <div class="sys-row"><span class="sys-k">Database</span><span class="sys-v" style="display:inline-flex;align-items:center;gap:6px"><span class="sys-dot" id="sys-db-dot"></span><span id="sys-db">—</span></span></div>
+    </div>
+  </aside>
+
+  <!-- ======= Main ======= -->
+  <main class="main" id="top">
+
+    <div class="pagehead">
+      <div>
+        <div class="mobile-brand">
+          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 1.8l8.6 3.2v6.6c0 5.3-3.7 9-8.6 10.8-4.9-1.8-8.6-5.5-8.6-10.8V5L12 1.8z" fill="url(#lg-logo)"/><path d="M8.3 12l2.7 2.7 5-5.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>RazorSentry</span>
+        </div>
+        <div class="ph-title">Operations Overview</div>
+        <div class="ph-sub">
+          <span class="livedot" id="live-dot"></span>
+          <span class="livetxt">LIVE</span>
           <span class="mono" id="last-updated">connecting…</span>
         </div>
       </div>
+      <div class="ph-right">
+        <span class="pill"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Auto-refresh · <b class="mono" id="countdown">10</b>s</span>
+      </div>
     </div>
-    <div class="hchips">
-      <span class="f-chip"><svg class="ic" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 2.5v3M14.5 2.5v3M9.5 18.5v3M14.5 18.5v3M2.5 9.5h3M2.5 14.5h3M18.5 9.5h3M18.5 14.5h3"/></svg><b class="mono" id="model-ver">—</b></span>
-      <span class="f-chip"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>θ <b class="mono" id="threshold">—</b></span>
-      <span class="f-chip"><span class="dot-sm" id="db-dot"></span>DB <b id="db-health">—</b></span>
-    </div>
-  </header>
 
-  <!-- ======= KPI cards ======= -->
-  <section class="kpis">
-    <div class="glass kpi" id="card-total">
-      <div class="kpi-top">
-        <span class="kpi-label"><span class="kpi-ic" style="color:#22D3EE"><svg class="ic" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>Total Today</span>
-        <span id="delta-total"></span>
+    <!-- ======= KPI cards ======= -->
+    <section class="kpis">
+      <div class="card kpi">
+        <div class="kpi-head">
+          <span class="kpi-ic ti-indigo"><svg class="ic" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+          <span id="delta-total"></span>
+        </div>
+        <div class="kpi-value v-navy" id="val-total">—</div>
+        <div class="kpi-label">Total Today</div>
+        <div class="kpi-foot"><svg class="spark kpi-spark" id="spark-total" viewBox="0 0 140 34" preserveAspectRatio="none"></svg></div>
       </div>
-      <div class="kpi-value grad-txt g-cyan" id="val-total">—</div>
-      <div class="kpi-spark" id="spark-total"></div>
-    </div>
-    <div class="glass kpi" id="card-blocked">
-      <div class="kpi-top">
-        <span class="kpi-label"><span class="kpi-ic" style="color:#FB7185"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21.5C7.5 19.9 4 16.4 4 11.5V5.5L12 2.5l8 3v6c0 4.9-3.5 8.4-8 10z"/><path d="M9.4 9.4l5.2 5.2M14.6 9.4l-5.2 5.2"/></svg></span>Blocked</span>
-        <span id="delta-blocked"></span>
+      <div class="card kpi">
+        <div class="kpi-head">
+          <span class="kpi-ic ti-red"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21.5C7.5 19.9 4 16.4 4 11.5V5.5L12 2.5l8 3v6c0 4.9-3.5 8.4-8 10z"/><path d="M9.4 9.4l5.2 5.2M14.6 9.4l-5.2 5.2"/></svg></span>
+          <span id="delta-blocked"></span>
+        </div>
+        <div class="kpi-value v-red" id="val-blocked">—</div>
+        <div class="kpi-label">Blocked</div>
+        <div class="kpi-foot"><svg class="spark kpi-spark" id="spark-blocked" viewBox="0 0 140 34" preserveAspectRatio="none"></svg></div>
       </div>
-      <div class="kpi-value grad-txt g-red" id="val-blocked">—</div>
-      <div class="kpi-spark" id="spark-blocked"></div>
-    </div>
-    <div class="glass kpi" id="card-review">
-      <div class="kpi-top">
-        <span class="kpi-label"><span class="kpi-ic" style="color:#FBBF24"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.8-6.8 10-6.8S22 12 22 12s-3.8 6.8-10 6.8S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Review Queue</span>
-        <span id="delta-review"></span>
+      <div class="card kpi">
+        <div class="kpi-head">
+          <span class="kpi-ic ti-amber"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+          <span id="delta-review"></span>
+        </div>
+        <div class="kpi-value v-amber" id="val-review">—</div>
+        <div class="kpi-label">Review Queue</div>
+        <div class="kpi-foot"><svg class="spark kpi-spark" id="spark-review" viewBox="0 0 140 34" preserveAspectRatio="none"></svg></div>
       </div>
-      <div class="kpi-value grad-txt g-amber" id="val-review">—</div>
-      <div class="kpi-spark" id="spark-review"></div>
-    </div>
-    <div class="glass kpi" id="card-approved">
-      <div class="kpi-top">
-        <span class="kpi-label"><span class="kpi-ic" style="color:#34D399"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M8.1 12.4l2.7 2.7 5.1-5.7"/></svg></span>Approved</span>
-        <span id="delta-approved"></span>
+      <div class="card kpi">
+        <div class="kpi-head">
+          <span class="kpi-ic ti-green"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.1 12.4l2.7 2.7 5.1-5.7"/></svg></span>
+          <span id="delta-approved"></span>
+        </div>
+        <div class="kpi-value v-green" id="val-approved">—</div>
+        <div class="kpi-label">Approved</div>
+        <div class="kpi-foot"><svg class="spark kpi-spark" id="spark-approved" viewBox="0 0 140 34" preserveAspectRatio="none"></svg></div>
       </div>
-      <div class="kpi-value grad-txt g-green" id="val-approved">—</div>
-      <div class="kpi-spark" id="spark-approved"></div>
-    </div>
-    <div class="glass kpi" id="card-latency">
-      <div class="kpi-top">
-        <span class="kpi-label"><span class="kpi-ic" style="color:#A78BFA"><svg class="ic" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>Avg Latency</span>
-        <span id="delta-latency"></span>
+      <div class="card kpi">
+        <div class="kpi-head">
+          <span class="kpi-ic ti-violet"><svg class="ic" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+          <span id="delta-latency"></span>
+        </div>
+        <div class="kpi-value v-violet" id="val-latency">—</div>
+        <div class="kpi-label">Avg Latency</div>
+        <div class="kpi-foot"><svg class="spark kpi-spark" id="spark-latency" viewBox="0 0 140 34" preserveAspectRatio="none"></svg></div>
       </div>
-      <div class="kpi-value grad-txt g-violet" id="val-latency">—</div>
-      <div class="kpi-spark" id="spark-latency"></div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ======= Distribution + Spike ======= -->
-  <div class="grid-2">
-    <div class="panel glass">
-      <div class="panel-head">
-        <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>Decision Distribution</span>
-      </div>
-      <div class="dist-layout">
-        <div class="donut-wrap">
-          <svg id="donut" viewBox="0 0 140 140"><circle class="dn-track" cx="70" cy="70" r="55" pathLength="100"/></svg>
-          <div class="donut-center">
-            <div class="dc-val grad-txt g-cyan" id="donut-total">—</div>
-            <div class="dc-lab">total</div>
+    <!-- ======= Distribution + Spike ======= -->
+    <div class="grid-2">
+      <div class="card panel" id="panel-dist">
+        <div class="panel-head">
+          <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>Decision Distribution</span>
+        </div>
+        <div class="dist-layout">
+          <div class="donut-wrap">
+            <svg class="donut" id="donut" viewBox="0 0 140 140" aria-hidden="true"></svg>
+            <div class="donut-center">
+              <div class="dc-val mono" id="donut-total">—</div>
+              <div class="dc-lab">Total</div>
+            </div>
+          </div>
+          <div class="dist-side">
+            <div class="dist-bar" id="dist-bar"></div>
+            <div class="dist-legend">
+              <span class="lg"><i class="lgd" style="background:#F04438"></i>Block <b class="mono" id="pct-block">—</b></span>
+              <span class="lg"><i class="lgd" style="background:#F79009"></i>Review <b class="mono" id="pct-review">—</b></span>
+              <span class="lg"><i class="lgd" style="background:#12B76A"></i>Approve <b class="mono" id="pct-approve">—</b></span>
+            </div>
+            <div class="dist-note" id="dist-note">Loading…</div>
           </div>
         </div>
-        <div class="dist-side">
-          <div class="dist-bar" id="dist-bar"></div>
-          <div class="dist-legend">
-            <span class="lg-item"><span class="lg-dot" style="--c:#F43F5E"></span>Block <b class="lg-val mono" id="pct-block">—</b></span>
-            <span class="lg-item"><span class="lg-dot" style="--c:#F59E0B"></span>Review <b class="lg-val mono" id="pct-review">—</b></span>
-            <span class="lg-item"><span class="lg-dot" style="--c:#059669"></span>Approve <b class="lg-val mono" id="pct-approve">—</b></span>
+      </div>
+
+      <div class="card panel" id="panel-spike">
+        <div class="panel-head">
+          <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>Fraud Spike Monitor · EWMA</span>
+          <span class="chip warn" id="spike-chip"><span class="cdot"></span>…</span>
+        </div>
+        <div class="spike-hero">
+          <span class="ewma-val mono" id="spike-ewma">—</span>
+          <span class="ewma-lab">EWMA fraud rate · last 100 txns</span>
+        </div>
+        <div class="meter">
+          <div class="meter-track">
+            <div class="meter-fill" id="spike-fill" style="width:0%"></div>
+            <i class="mtick" style="left:50%"></i>
+            <i class="mtick" style="right:0"></i>
           </div>
-          <div class="dist-note" id="dist-note">Loading…</div>
+          <div class="meter-scale mono"><span>0%</span><span>2.5%</span><span>5%+</span></div>
+        </div>
+        <div class="panel-sub" id="spike-detail">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ======= Drift + PSI History (scrollable) ======= -->
+    <div class="grid-2b">
+      <div class="card panel" id="panel-drift">
+        <div class="panel-head">
+          <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><path d="M1 12q2.8-5 5.6 0t5.6 0 5.6 0 5.6 0"/><path d="M1 17q2.8-3.2 5.6 0t5.6 0 5.6 0 5.6 0"/></svg>Feature Drift · PSI</span>
+          <span class="chip warn" id="drift-chip"><span class="cdot"></span>…</span>
+        </div>
+        <div class="drift-meta mono" id="drift-detail">Loading drift telemetry…</div>
+        <div id="psi-table"></div>
+        <div class="psi-note">Log-scaled bars · warn ≥ 0.10 · alert ≥ 0.20 (tick marks)</div>
+      </div>
+
+      <div class="card panel" id="panel-psi">
+        <div class="panel-head">
+          <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.4 2"/></svg>PSI History</span>
+          <span class="panel-aux mono" id="psi-count">—</span>
+        </div>
+        <div class="psi-scroll slim" id="psi-timeline">
+          <div class="empty">Waiting for drift checks…</div>
         </div>
       </div>
     </div>
 
-    <div class="panel glass">
-      <div class="panel-head">
-        <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>Fraud Spike Monitor · EWMA</span>
-        <span class="chip warn" id="spike-chip"><span class="cdot"></span>…</span>
+    <!-- ======= Recent decisions ======= -->
+    <section class="card" id="panel-decisions">
+      <div class="table-head">
+        <span class="table-title"><svg class="ic" viewBox="0 0 24 24"><path d="M8.5 6h12M8.5 12h12M8.5 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Recent Decisions</span>
+        <span class="badge-count mono" id="total-log-count">—</span>
       </div>
-      <div class="spike-hero">
-        <span class="ewma-val grad-txt g-cyan" id="spike-ewma">—</span>
-        <span class="ewma-lab">EWMA fraud rate</span>
+      <div class="table-wrap slim" id="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Transaction</th>
+              <th>Type</th>
+              <th class="ta-r">Amount</th>
+              <th>Risk Score</th>
+              <th>Decision</th>
+              <th class="ta-r">Latency</th>
+            </tr>
+          </thead>
+          <tbody id="decisions-body">
+            <tr><td colspan="7" class="td-empty">Loading decisions…</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="meter">
-        <div class="meter-track"><div class="meter-fill" id="spike-fill" style="width:0%"></div></div>
-        <div class="meter-scale"><span>0%</span><span>2.5%</span><span>5%+</span></div>
-      </div>
-      <div class="panel-sub" id="spike-detail">Loading…</div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ======= Drift + PSI History (scrollable) ======= -->
-  <div class="grid-2b">
-    <div class="panel glass">
-      <div class="panel-head">
-        <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><path d="M1 12q2.8-5 5.6 0t5.6 0t5.6 0t5.6 0"/><path d="M1 17q2.8-3.2 5.6 0t5.6 0t5.6 0t5.6 0"/></svg>Feature Drift · PSI</span>
-        <span class="chip warn" id="drift-chip"><span class="cdot"></span>…</span>
+    <footer class="foot">
+      <span class="foot-note">RazorSentry · Fraud Operations Console · panels refresh automatically every 10s</span>
+      <div class="foot-right">
+        <span class="foot-note">next refresh in <b class="mono" id="countdown2">10</b>s</span>
+        <span class="refbar"><i id="ref-fill"></i></span>
       </div>
-      <div class="drift-meta mono" id="drift-detail">Loading drift telemetry…</div>
-      <div id="psi-table"></div>
-      <div class="psi-note">Tick marks show PSI warn (0.10) and alert (0.20) thresholds · bars use a logarithmic scale</div>
-    </div>
+    </footer>
 
-    <div class="panel glass">
-      <div class="panel-head">
-        <span class="panel-title"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M12 7v5.2l3.4 2"/></svg>PSI History</span>
-        <span class="panel-aux mono" id="psi-count">—</span>
-      </div>
-      <div class="psi-scroll slim-scroll" id="psi-timeline">
-        <div class="empty">Waiting for drift checks…</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======= Recent decisions ======= -->
-  <section class="glass table-card">
-    <div class="table-head">
-      <span class="table-title"><svg class="ic" viewBox="0 0 24 24"><path d="M8.5 6h12M8.5 12h12M8.5 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Recent Decisions</span>
-      <span class="badge-count mono" id="total-log-count">—</span>
-    </div>
-    <div class="table-wrap slim-scroll" id="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Transaction</th>
-            <th>Type</th>
-            <th class="ta-r">Amount</th>
-            <th>Risk Score</th>
-            <th>Decision</th>
-            <th class="ta-r">Latency</th>
-          </tr>
-        </thead>
-        <tbody id="decisions-body">
-          <tr><td colspan="7" class="td-empty">Loading decisions…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ======= Footer ======= -->
-  <footer class="foot glass">
-    <span class="foot-note">RazorSentry · real-time fraud decisioning · all panels refresh automatically</span>
-    <div class="foot-refresh">
-      <span class="refresh-label">next refresh in <b class="mono" id="countdown">10</b>s</span>
-      <span class="refresh-bar"><i id="refresh-fill"></i></span>
-    </div>
-  </footer>
-
+  </main>
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
-
 function fmtInt(v) { return Math.round(v).toLocaleString('en-US'); }
 function num(v, d) { return (v === undefined || v === null || v === '') ? '—' : Number(v).toFixed(d); }
 
-/* ---------- metric config (dir: +1 = increase is good, -1 = increase is bad, 0 = neutral) ---------- */
+/* dir: +1 increase is good, -1 increase is bad, 0 neutral */
 const METRICS = [
-  { key: 'total',    dir: 0,  color: '#22D3EE', fmt: fmtInt },
-  { key: 'blocked',  dir: -1, color: '#FB7185', fmt: fmtInt },
-  { key: 'review',   dir: -1, color: '#FBBF24', fmt: fmtInt },
-  { key: 'approved', dir: 1,  color: '#34D399', fmt: fmtInt },
-  { key: 'latency',  dir: -1, color: '#A78BFA', fmt: (v) => v.toFixed(2) + 'ms' }
+  { key: 'total',    dir: 0,  color: '#5A5AE6', fmt: fmtInt },
+  { key: 'blocked',  dir: -1, color: '#F04438', fmt: fmtInt },
+  { key: 'review',   dir: -1, color: '#F79009', fmt: fmtInt },
+  { key: 'approved', dir: 1,  color: '#12B76A', fmt: fmtInt },
+  { key: 'latency',  dir: -1, color: '#8B5CF6', fmt: (v) => v.toFixed(2) + 'ms' }
 ];
 const hist = { total: [], blocked: [], review: [], approved: [], latency: [] };
 let prev = null;
 
-/* ---------- animated count-up ---------- */
+/* count-up animation */
 function tween(el, from, to, dur, fmt) {
   if (!isFinite(to)) { el.textContent = '—'; return; }
   if (from === null || !isFinite(from) || from === to) { el.textContent = fmt(to); return; }
@@ -994,24 +983,23 @@ function tween(el, from, to, dur, fmt) {
   requestAnimationFrame(step);
 }
 
-/* ---------- delta chip vs last refresh ---------- */
+/* delta pill — FinSequence style (+15.8% green / -12.5% red) */
 function deltaChip(diff, dir, dec) {
   if (diff === null) return '';
-  if (Math.abs(diff) < 0.005) return '<span class="d-chip d-zero">— 0</span>';
+  if (Math.abs(diff) < 0.005) return '<span class="dp flat">0.0%</span>';
   const up = diff > 0;
   const good = dir === 0 ? null : (up ? dir > 0 : dir < 0);
-  const cls = dir === 0 ? 'd-neu' : (good ? 'd-pos' : 'd-neg');
-  const arrow = up ? '▲' : '▼';
-  const mag = Math.abs(diff);
-  const txt = dec ? mag.toFixed(1) : fmtInt(mag);
-  return '<span class="d-chip ' + cls + '">' + arrow + ' ' + txt + '</span>';
+  const cls = dir === 0 ? 'flat' : (good ? 'up' : 'down');
+  const arrow = up ? '+' : '–';
+  const mag = dec ? Math.abs(diff).toFixed(1) : fmtInt(Math.abs(diff));
+  return '<span class="dp ' + cls + '">' + arrow + mag + '</span>';
 }
 
-/* ---------- sparkline ---------- */
-function sparkSVG(vals, key, color) {
+/* sparkline (light) */
+function sparkSVG(vals, color, key) {
   const w = 140, h = 34, p = 3;
   if (!vals || vals.length < 2) {
-    return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '"><line x1="4" y1="' + (h - 6) + '" x2="' + (w - 4) + '" y2="' + (h - 6) + '" stroke="rgba(255,255,255,.12)" stroke-width="1" stroke-dasharray="3 4"/></svg>';
+    return '<line x1="4" y1="' + (h - 6) + '" x2="' + (w - 4) + '" y2="' + (h - 6) + '" stroke="#E0E5EE" stroke-width="1.5" stroke-dasharray="3 4"/>';
   }
   const min = Math.min(...vals), max = Math.max(...vals);
   const span = (max - min) || max || 1;
@@ -1020,64 +1008,59 @@ function sparkSVG(vals, key, color) {
     h - p - ((v - min) / span) * (h - 2 * p)
   ]);
   const line = pts.map(pt => pt[0].toFixed(1) + ' ' + pt[1].toFixed(1)).join(' ');
-  const area = (p + ' ' + (h - p) + ' ' + line + ' ' + (w - p) + ' ' + (h - p));
+  const area = p + ' ' + (h - p) + ' ' + line + ' ' + (w - p) + ' ' + (h - p);
   const gid = 'sg-' + key;
   const last = pts[pts.length - 1];
-  return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
-    '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
-    '<stop offset="0" stop-color="' + color + '" stop-opacity=".3"/>' +
+  return '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="' + color + '" stop-opacity=".18"/>' +
     '<stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
     '<polygon points="' + area + '" fill="url(#' + gid + ')"/>' +
-    '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>' +
-    '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.4" fill="' + color + '"/>' +
-  '</svg>';
+    '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.4" fill="' + color + '"/>';
 }
 
-/* ---------- donut ---------- */
+/* donut */
 function renderDonut(b, r, a) {
   const total = b + r + a;
-  const svg = $('donut');
   const defs = '<defs>' +
-    '<linearGradient id="dg-block" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FDA4AF"/><stop offset="1" stop-color="#E11D48"/></linearGradient>' +
-    '<linearGradient id="dg-review" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FDE68A"/><stop offset="1" stop-color="#F59E0B"/></linearGradient>' +
-    '<linearGradient id="dg-approve" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6EE7B7"/><stop offset="1" stop-color="#059669"/></linearGradient>' +
+    '<linearGradient id="dgb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F97066"/><stop offset="1" stop-color="#F04438"/></linearGradient>' +
+    '<linearGradient id="dgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FDB022"/><stop offset="1" stop-color="#F79009"/></linearGradient>' +
+    '<linearGradient id="dga" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3CC97C"/><stop offset="1" stop-color="#12B76A"/></linearGradient>' +
   '</defs>';
   let segs = '', off = 0;
   if (total > 0) {
-    [['block', b], ['review', r], ['approve', a]].forEach(seg => {
+    [['b', b], ['r', r], ['a', a]].forEach(seg => {
       if (seg[1] <= 0) return;
       const len = (seg[1] / total) * 100;
-      segs += '<circle class="dn-seg dn-' + seg[0] + '" cx="70" cy="70" r="55" pathLength="100" ' +
+      segs += '<circle class="dn-seg" cx="70" cy="70" r="54" pathLength="100" stroke="url(#dg' + seg[0] + ')" ' +
         'stroke-dasharray="' + len.toFixed(2) + ' ' + (100 - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>';
       off += len;
     });
   }
-  svg.innerHTML = defs + '<g transform="rotate(-90 70 70)"><circle class="dn-track" cx="70" cy="70" r="55" pathLength="100"/>' + segs + '</g>';
+  $('donut').innerHTML = defs + '<g transform="rotate(-90 70 70)"><circle class="dn-track" cx="70" cy="70" r="54" pathLength="100"/>' + segs + '</g>';
   $('donut-total').textContent = fmtInt(total);
 }
 
 function renderDist(b, r, a) {
   const total = b + r + a;
   if (total <= 0) return;
-  const pB = b / total * 100, pR = r / total * 100, pA = a / total * 100;
   $('dist-bar').innerHTML =
-    '<div class="dist-block" style="width:' + pB + '%"></div>' +
-    '<div class="dist-review" style="width:' + pR + '%"></div>' +
-    '<div class="dist-approve" style="width:' + pA + '%"></div>';
-  $('pct-block').textContent = pB.toFixed(1) + '%';
-  $('pct-review').textContent = pR.toFixed(1) + '%';
-  $('pct-approve').textContent = pA.toFixed(1) + '%';
+    '<div class="dist-block" style="width:' + (b / total * 100) + '%"></div>' +
+    '<div class="dist-review" style="width:' + (r / total * 100) + '%"></div>' +
+    '<div class="dist-approve" style="width:' + (a / total * 100) + '%"></div>';
+  $('pct-block').textContent = (b / total * 100).toFixed(1) + '%';
+  $('pct-review').textContent = (r / total * 100).toFixed(1) + '%';
+  $('pct-approve').textContent = (a / total * 100).toFixed(1) + '%';
   $('dist-note').textContent = fmtInt(b) + ' blocked · ' + fmtInt(r) + ' review · ' + fmtInt(a) + ' approved today';
 }
 
-/* ---------- status chip ---------- */
 function setChip(id, kind, text) {
   const el = $(id);
   el.className = 'chip ' + kind;
   el.innerHTML = '<span class="cdot"></span>' + text;
 }
 
-/* ---------- PSI helpers (log scale, full scale ≈ 5.0) ---------- */
+/* PSI helpers (log scale, full scale = 5.0) */
 const LOG6 = Math.log10(6);
 function psiWidth(psi) {
   const p = Math.max(Number(psi) || 0, 0);
@@ -1094,18 +1077,19 @@ function renderPsiBars(fp, alerts) {
     const psi = Number(e[1]) || 0;
     const isAlert = alerts && alerts.indexOf(feat) !== -1;
     const isWarn = !isAlert && psi > 0.1;
-    const col = isAlert ? '#FB7185' : (isWarn ? '#FBBF24' : '#34D399');
+    const col = isAlert ? '#F04438' : (isWarn ? '#F79009' : '#12B76A');
+    const colD = isAlert ? '#B42318' : (isWarn ? '#B54708' : '#079451');
     const w = psiWidth(psi).toFixed(1);
     const mark = isAlert ? ' ⚠' : (isWarn ? ' ▲' : '');
     return '<div class="pb-row">' +
       '<span class="pb-name mono" title="' + feat + '">' + feat + '</span>' +
-      '<span class="pb-track"><span class="pb-fill" style="width:' + w + '%;background:linear-gradient(90deg,' + col + '55,' + col + ');box-shadow:0 0 8px ' + col + '40"></span>' + ticks + '</span>' +
-      '<span class="pb-val mono" style="color:' + col + '">' + psi.toFixed(4) + mark + '</span>' +
+      '<span class="pb-track"><span class="pb-fill" style="width:' + w + '%;background:' + col + '"></span>' + ticks + '</span>' +
+      '<span class="pb-val mono" style="color:' + colD + '">' + psi.toFixed(4) + mark + '</span>' +
     '</div>';
   }).join('');
 }
 
-/* ---------- PSI history (scrollable, position preserved) ---------- */
+/* PSI history — scrollable, newest first, scroll position preserved */
 function renderTimeline(list) {
   const el = $('psi-timeline');
   if (!list || !list.length) {
@@ -1113,27 +1097,28 @@ function renderTimeline(list) {
     $('psi-count').textContent = '0 checks';
     return;
   }
-  $('psi-count').textContent = list.length + ' checks';
+  $('psi-count').textContent = list.length + (list.length === 1 ? ' check' : ' checks');
   const sig = list.map(h => h.timestamp + ':' + h.max_psi + ':' + (h.alert ? 1 : 0) + (h.warn ? 1 : 0)).join('|');
   if (el.dataset.sig === sig) return;
   el.dataset.sig = sig;
   const keep = el.scrollTop;
   el.innerHTML = list.slice().reverse().map(h => {
-    const col = h.alert ? '#FB7185' : (h.warn ? '#FBBF24' : '#34D399');
+    const col = h.alert ? '#F04438' : (h.warn ? '#F79009' : '#12B76A');
+    const colD = h.alert ? '#B42318' : (h.warn ? '#B54708' : '#079451');
     const cls = h.alert ? 'alert' : (h.warn ? 'warn' : 'ok');
     const w = psiWidth(h.max_psi).toFixed(1);
     return '<div class="tl-row">' +
       '<span class="tl-time mono">' + (h.timestamp || '—') + '</span>' +
       '<span class="tl-dot ' + cls + '"></span>' +
-      '<span class="tl-track"><span class="tl-fill" style="width:' + w + '%;background:linear-gradient(90deg,' + col + '55,' + col + ')"></span></span>' +
-      '<span class="tl-psi mono" style="color:' + col + '">' + Number(h.max_psi || 0).toFixed(3) + '</span>' +
+      '<span class="tl-track"><span class="tl-fill" style="width:' + w + '%;background:' + col + '"></span></span>' +
+      '<span class="tl-psi mono" style="color:' + colD + '">' + Number(h.max_psi || 0).toFixed(3) + '</span>' +
       '<span class="tl-n mono">n=' + (h.samples !== undefined ? h.samples : '—') + '</span>' +
     '</div>';
   }).join('');
   el.scrollTop = keep;
 }
 
-/* ---------- decisions table ---------- */
+/* decisions table */
 function renderTable(rows) {
   const tbody = $('decisions-body');
   const wrap = $('table-wrap');
@@ -1141,7 +1126,7 @@ function renderTable(rows) {
     tbody.innerHTML = '<tr><td colspan="7" class="td-empty">No decisions yet — score a transaction to begin</td></tr>';
     return;
   }
-  const sig = rows.map(d => (d.timestamp || '') + (d.transaction_id || '') + (d.score || '')).join('|');
+  const sig = rows.map(d => (d.timestamp || '') + (d.transaction_id || '') + (d.score || '') + (d.decision || '')).join('|');
   if (tbody.dataset.sig === sig) return;
   tbody.dataset.sig = sig;
   const keep = wrap.scrollTop;
@@ -1155,13 +1140,14 @@ function renderTable(rows) {
     let scoreHtml = '<span class="td-muted">—</span>';
     if (d.score !== undefined && d.score !== null) {
       const sc = Number(d.score);
-      const col = sc >= 0.7 ? '#FB7185' : (sc >= 0.4 ? '#FBBF24' : '#34D399');
-      scoreHtml = '<span class="score-cell"><span class="mono" style="color:' + col + '">' + sc.toFixed(4) + '</span>' +
-        '<span class="score-track"><span class="score-fill" style="width:' + (sc * 100).toFixed(1) + '%;background:linear-gradient(90deg,' + col + '66,' + col + ')"></span></span></span>';
+      const col = sc >= 0.7 ? '#F04438' : (sc >= 0.4 ? '#F79009' : '#12B76A');
+      const colD = sc >= 0.7 ? '#B42318' : (sc >= 0.4 ? '#B54708' : '#079451');
+      scoreHtml = '<span class="scorecell"><span class="mono" style="color:' + colD + '">' + sc.toFixed(4) + '</span>' +
+        '<span class="scorebar"><i style="width:' + (sc * 100).toFixed(1) + '%;background:' + col + '"></i></span></span>';
     }
     return '<tr>' +
       '<td class="mono td-muted">' + ts + '</td>' +
-      '<td class="mono td-id">' + tid.substring(0, 12) + '…</td>' +
+      '<td class="mono td-id" title="' + tid + '">' + tid.substring(0, 10) + '…</td>' +
       '<td><span class="type-pill">' + type + '</span></td>' +
       '<td class="mono ta-r">' + amt + '</td>' +
       '<td>' + scoreHtml + '</td>' +
@@ -1172,17 +1158,17 @@ function renderTable(rows) {
   wrap.scrollTop = keep;
 }
 
-/* ---------- refresh countdown ---------- */
+/* refresh countdown */
 let cd = 10;
-const cdEl = $('countdown');
-setInterval(() => { cd = Math.max(cd - 1, 0); cdEl.textContent = cd; }, 1000);
-function resetRefreshUI() {
-  cd = 10; cdEl.textContent = '10';
-  const fill = $('refresh-fill');
-  fill.classList.remove('run'); void fill.offsetWidth; fill.classList.add('run');
+const cdEl = $('countdown'), cdEl2 = $('countdown2');
+setInterval(() => { cd = Math.max(cd - 1, 0); cdEl.textContent = cd; cdEl2.textContent = cd; }, 1000);
+function resetCountdown() {
+  cd = 10; cdEl.textContent = '10'; cdEl2.textContent = '10';
+  const f = $('ref-fill');
+  f.classList.remove('run'); void f.offsetWidth; f.classList.add('run');
 }
 
-/* ---------- main refresh ---------- */
+/* main refresh */
 async function refresh() {
   try {
     const res = await fetch('/dashboard/stats');
@@ -1197,50 +1183,43 @@ async function refresh() {
       latency: Number(s.avg_latency_ms) || 0
     };
 
-    /* KPIs: count-up + delta + sparkline + change flash */
     METRICS.forEach(m => {
-      const from = prev ? prev[m.key] : 0;
-      tween($('val-' + m.key), from, cur[m.key], prev ? 450 : 900, m.fmt);
+      const from = prev ? prev[m.key] : null;
+      tween($('val-' + m.key), from, cur[m.key], prev ? 500 : 800, m.fmt);
       $('delta-' + m.key).innerHTML = deltaChip(prev ? cur[m.key] - prev[m.key] : null, m.dir, m.key === 'latency');
       const arr = hist[m.key];
       arr.push(cur[m.key]);
       if (arr.length > 40) arr.shift();
-      $('spark-' + m.key).innerHTML = sparkSVG(arr, m.key, m.color);
-      if (prev && cur[m.key] !== prev[m.key]) {
-        const card = $('card-' + m.key);
-        card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
-      }
+      $('spark-' + m.key).innerHTML = sparkSVG(arr, m.color, m.key);
     });
 
-    /* header */
-    $('model-ver').textContent = data.model_version || '—';
-    $('threshold').textContent = Number(data.operating_threshold).toFixed(2);
-    $('db-health').textContent = data.db_healthy ? 'Connected' : 'Unreachable';
-    $('db-dot').className = 'dot-sm' + (data.db_healthy ? '' : ' bad');
+    /* sidebar system card */
+    $('sys-model').textContent = data.model_version || '—';
+    $('sys-threshold').textContent = Number(data.operating_threshold).toFixed(2);
+    $('sys-db').textContent = data.db_healthy ? 'Connected' : 'Unreachable';
+    $('sys-db-dot').className = 'sys-dot' + (data.db_healthy ? '' : ' bad');
     $('live-dot').classList.remove('bad');
-    $('last-updated').textContent = '· updated ' + new Date().toLocaleTimeString();
-    $('total-log-count').textContent = fmtInt(s.total_in_log) + ' in audit log';
+    $('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    $('total-log-count').textContent = (s.total_in_log !== undefined ? fmtInt(s.total_in_log) : '—') + ' in audit log';
 
-    /* distribution */
     renderDist(cur.blocked, cur.review, cur.approved);
     renderDonut(cur.blocked, cur.review, cur.approved);
 
-    /* spike monitor */
     const spike = data.spike_alert || {};
     const rate = Number(spike.ewma_rate) || 0;
     $('spike-ewma').textContent = (rate * 100).toFixed(2) + '%';
-    $('spike-fill').style.width = (Math.min(rate / 0.05, 1) * 100).toFixed(1) + '%';
+    const fillEl = $('spike-fill');
+    fillEl.style.width = (Math.min(rate / 0.05, 1) * 100).toFixed(1) + '%';
     if (spike.spike_detected) {
       setChip('spike-chip', 'danger', 'Spike detected');
-      $('spike-fill').classList.add('danger');
+      fillEl.style.background = '#F04438';
       $('spike-detail').textContent = 'EWMA fraud rate has breached the alert threshold — investigate immediately.';
     } else {
       setChip('spike-chip', 'ok', 'Normal');
-      $('spike-fill').classList.remove('danger');
+      fillEl.style.background = rate < 0.025 ? '#12B76A' : (rate < 0.05 ? '#F79009' : '#F04438');
       $('spike-detail').textContent = 'Rolling EWMA of block-rate across the last 100 scored transactions · meter scale 0–5%.';
     }
 
-    /* drift monitor */
     const drift = data.drift_alert || {};
     const psiTable = $('psi-table');
     if (!drift.drift_checked) {
@@ -1261,18 +1240,17 @@ async function refresh() {
       psiTable.innerHTML = renderPsiBars(drift.feature_psi, []);
     }
 
-    /* psi history + decisions */
     renderTimeline(data.drift_history || []);
     renderTable(data.last_10_decisions);
 
     prev = cur;
-    resetRefreshUI();
   } catch (e) {
-    $('last-updated').textContent = '· connection lost — retrying';
+    $('last-updated').textContent = 'connection lost — retrying';
     $('live-dot').classList.add('bad');
     setChip('spike-chip', 'warn', 'Offline');
     setChip('drift-chip', 'warn', 'Offline');
   }
+  resetCountdown();
 }
 
 refresh();
