@@ -22,3 +22,4 @@ slowapi==0.1.9
 redis==5.0.4
 rq==1.16.2
 rq-dashboard==0.6.1
+locust==2.29.1

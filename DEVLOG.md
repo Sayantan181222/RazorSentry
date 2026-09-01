@@ -153,6 +153,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** --timeout-graceful-shutdown is a uvicorn flag that signals workers to stop accepting new connections and finish existing ones. With 4 workers each handling ~15-20 RPS, the 10 second window covers ~150-200 in-flight requests. Production would use a longer window (30-60s) for batch endpoints
 
 ---
+### Load Testing with Locust
+**What:** Ran Locust load test with 100 concurrent users for 60 seconds against the full Docker stack (4 uvicorn workers, PostgreSQL, Redis). Measured p50, p95, p99 latency and sustained RPS for /score [legit], /score [fraud], and /health endpoints. Results published in README
+**Why:** Showing infrastructure metrics on a load test is the equivalent of showing precision/recall on a held-out test set — it proves the system works under realistic pressure, not just in single-request demos. Almost no buildathon submission will have this
+**Relevance to Track 02:** "Build quality — would you trust it." A fraud detection system that works for 1 request but degrades at 100 concurrent users is not a product. The load test shows where the system stands and where the bottleneck is (SHAP computation)
+**Honest note:** Tests run on MacBook Air M1 with Docker — not a cloud VM. Numbers will be higher on a dedicated server. The bottleneck is SHAP TreeExplainer adding ~10-15ms per request. Removing SHAP would drop p50 by 30-40% at the cost of losing reason codes — not an acceptable tradeoff for a fraud system
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**

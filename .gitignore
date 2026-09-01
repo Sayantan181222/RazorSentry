@@ -16,3 +16,4 @@ reports/*.json
 reports/*.csv
 .pytest_cache/
 reports/batch_replay_results.csv
+reports/load_test*
