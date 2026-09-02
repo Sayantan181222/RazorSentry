@@ -96,6 +96,14 @@ Bottleneck: SHAP TreeExplainer adds ~10-15ms per request. Production mitigation:
 
 ## Quickstart
 
+> **Deployment Note:** RazorSentry requires three services running
+> simultaneously — FastAPI, PostgreSQL, and Redis. Free cloud tiers
+> (Railway, Render, Fly.io) either limit you to one free service or
+> sleep containers after inactivity, making a reliable public demo
+> impractical without paid infrastructure. The project is designed for
+> `docker compose up` — one command starts all services locally.
+> The 5-minute demo video shows the full system running end to end.
+
 ```bash
 git clone https://github.com/Sayantan181222/RazorSentry.git
 cd RazorSentry
@@ -129,6 +137,21 @@ GROQ_API_KEY=your_groq_key_here
 PII_SALT=your_secret_salt_here
 LOAD_TEST_MODE=false
 ```
+
+---
+
+## Demo Video
+
+The 5-minute pitch video covers:
+- Live scoring demo via `bash scripts/demo_curl.sh`
+- Async scoring via POST /score/async with job polling
+- Dashboard at `http://localhost:8000/dashboard` showing live decisions
+- Data drift simulation via `python scripts/simulate_drift.py` —
+  dashboard flips from ✅ Stable to 🔴 DRIFT ALERT (PSI > 0.2) in real time
+- Metrics walkthrough: PR curve, cost curve, confusion matrix, top FP cases
+- Architecture explanation and what broke
+
+> Video link: [To be added after recording]
 
 ---
 

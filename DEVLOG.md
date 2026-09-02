@@ -160,6 +160,13 @@ Track: AI Risk Manager — Track 02, Razorpay Buildathon
 **Honest note:** Tests run on MacBook Air M1 with Docker — not a cloud VM. Numbers will be higher on a dedicated server. The bottleneck is SHAP TreeExplainer adding ~10-15ms per request. Removing SHAP would drop p50 by 30-40% at the cost of losing reason codes — not an acceptable tradeoff for a fraud system
 
 ---
+### Deployment Decision — Local Docker over Public Cloud
+**What:** Decided against public cloud deployment in favour of a fully documented local docker compose setup
+**Why:** RazorSentry needs three services simultaneously — FastAPI, PostgreSQL, and Redis. Every free cloud tier either restricts to one service, sleeps containers after inactivity, or requires a paid plan for the combination. Railway costs $5/month minimum for three services. Render and Fly.io have similar constraints.
+**Relevance to Track 02:** The buildathon form asks for a GitHub repo URL and a 5-minute video — not a live URL. Judges evaluate code quality, architecture, and metrics — not whether a URL resolves. The one-command docker compose setup is more reliable for evaluation than a sleeping free-tier deployment.
+**Honest note:** If this were a production system the infrastructure cost would be justified. For a buildathon demo, spending money on cloud hosting is not justified when docker compose up achieves the same result in 60 seconds on any machine with Docker installed.
+
+---
 ## What Broke and How It Was Fixed
 
 **Temporal leakage in velocity features**

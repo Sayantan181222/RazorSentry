@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.railway.example
 .venv/
 *.db
 *.db-journal
@@ -17,4 +19,7 @@ reports/*.json
 reports/*.csv
 .pytest_cache/
 reports/batch_replay_results.csv
-reports/load_test*.csv
+reports/load_test*
+railway.json
+Dockerfile.railway
+notebooks/

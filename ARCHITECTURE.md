@@ -270,6 +270,8 @@ aid for human analysts, not a decision-making component.
 | Model retraining pipeline | Triggered by PSI alert, CI/CD for model promotion |
 | Per-merchant rate limiting | API keys instead of per-IP limits |
 | Dashboard PSI history persistence | Store drift check results in PostgreSQL instead of in-memory — survives service restarts |
+| Public deployment | Requires paid tier for PostgreSQL + Redis + app simultaneously — Railway ($5), Render ($7), or Fly.io ($5/month minimum for three services |
+| One-command demo | `docker compose up --build -d` starts all four services locally — PostgreSQL, Redis, RazorSentry (4 workers), RQ worker |
 
 ---
 
