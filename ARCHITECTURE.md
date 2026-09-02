@@ -286,5 +286,5 @@ aid for human analysts, not a decision-making component.
 | Precision @ threshold | 1.000 |
 | Recall @ threshold | 0.9998 |
 | Operating threshold | 0.35 (cost-optimised, calibrated) |
-| Net savings on test set | ₹19.54 Cr across 101,643 transactions |
+| Net savings on test set | ₹195.36 Cr across 101,643 transactions |
 | False positive cost | ₹150/txn (review cost assumption) |
