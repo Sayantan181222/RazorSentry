@@ -8,7 +8,6 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///test_razorsentry.db")
 os.environ.setdefault("MODEL_PATH", "models/lgbm_model.pkl")
 os.environ.setdefault("THRESHOLD_PATH", "models/threshold.txt")
 
-# pyrefly: ignore [missing-import]
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient

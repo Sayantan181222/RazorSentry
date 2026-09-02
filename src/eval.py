@@ -2,9 +2,7 @@ import json
 import os
 import pickle
 
-# pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
-# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (

@@ -7,10 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
-# pyrefly: ignore [missing-import]
 import shap
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
