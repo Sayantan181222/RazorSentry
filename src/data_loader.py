@@ -10,15 +10,29 @@ RANDOM_STATE = 42
 TRAIN_RATIO = 0.8
 
 
-# Loads the raw PaySim CSV and returns a DataFrame
-def load_csv(path: str) -> pd.DataFrame:
-    return pd.read_csv(path)
+# Loads PaySim CSV or falls back to sample data if full dataset is not present
+def load_data() -> pd.DataFrame:
+    if os.path.exists(RAW_PATH):
+        print(f"Loading full dataset from {RAW_PATH}")
+        df = pd.read_csv(RAW_PATH)
+    elif os.path.exists("data/sample_transactions.csv"):
+        print("WARNING: PaySim.csv not found. Using sample_transactions.csv (20 rows).")
+        print("Download full dataset from https://www.kaggle.com/datasets/mtalaltariq/paysim-data")
+        df = pd.read_csv("data/sample_transactions.csv")
+    else:
+        raise FileNotFoundError(
+            "No data found. Place PaySim.csv at data/PaySim.csv or "
+            "use data/sample_transactions.csv for a quick demo."
+        )
+    return df
 
 
 # Subsamples all fraud rows plus a fixed number of random legit rows
 def subsample(df: pd.DataFrame, legit_n: int, random_state: int) -> pd.DataFrame:
     fraud = df[df["isFraud"] == 1]
-    legit = df[df["isFraud"] == 0].sample(n=legit_n, random_state=random_state)
+    legit_df = df[df["isFraud"] == 0]
+    n_samples = min(legit_n, len(legit_df))
+    legit = legit_df.sample(n=n_samples, random_state=random_state)
     return pd.concat([fraud, legit], ignore_index=True)
 
 
@@ -68,8 +82,7 @@ def print_summary(raw: pd.DataFrame, train: pd.DataFrame, test: pd.DataFrame) ->
 
 # Orchestrates loading, subsampling, sorting, splitting, saving, and printing
 def main() -> None:
-    print(f"Loading {RAW_PATH} ...")
-    raw = load_csv(RAW_PATH)
+    raw = load_data()
 
     print(f"Subsampling: all fraud + {LEGIT_SAMPLE:,} legit rows ...")
     sampled = subsample(raw, LEGIT_SAMPLE, RANDOM_STATE)

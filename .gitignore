@@ -1,6 +1,7 @@
 .env
 .env.*
-!.env.railway.example
+!.env.example
+.env.local
 .venv/
 *.db
 *.db-journal
@@ -11,6 +12,7 @@ __pycache__/
 *.pyc
 .DS_Store
 data/*.csv
+!data/sample_transactions.csv
 data/*.parquet
 models/*.pkl
 models/*.joblib

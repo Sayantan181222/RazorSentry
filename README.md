@@ -20,6 +20,8 @@ RazorSentry scores every transaction in real time, explains why, and writes a ta
 - **Async scoring path** — Redis Queue decouples burst acceptance from processing
 - **Razorpay webhook** — POST /webhook/razorpay accepts payment.failed events natively
 
+> For known limitations, honest failure modes, and future scope see [LIMITATIONS.md](LIMITATIONS.md)
+
 For full architecture details see [ARCHITECTURE.md](ARCHITECTURE.md).  
 For the development journey, decisions, and what broke see [DEVLOG.md](DEVLOG.md).
 
@@ -94,49 +96,70 @@ Bottleneck: SHAP TreeExplainer adds ~10-15ms per request. Production mitigation:
 
 ---
 
-## Quickstart
+## Quickstart — Run in Under 10 Minutes
 
-> **Deployment Note:** RazorSentry requires three services running
-> simultaneously — FastAPI, PostgreSQL, and Redis. Free cloud tiers
-> (Railway, Render, Fly.io) either limit you to one free service or
-> sleep containers after inactivity, making a reliable public demo
-> impractical without paid infrastructure. The project is designed for
-> `docker compose up` — one command starts all services locally.
-> The 5-minute demo video shows the full system running end to end.
+**Prerequisites:** Docker Desktop installed and running. That is all.
+No Python install needed. No database setup. One command starts everything.
 
 ```bash
+# 1. Clone the repo
 git clone https://github.com/Sayantan181222/RazorSentry.git
 cd RazorSentry
 
-# Download PaySim CSV from https://www.kaggle.com/datasets/mtalaltariq/paysim-data
-# Place at data/PaySim.csv
+# 2. Copy environment variables
+cp .env.example .env
+# Edit .env and add your GROQ_API_KEY (optional — service works without it)
+# PII_SALT is pre-filled with a demo value — change it for any real use
 
-python src/data_loader.py
-python src/train.py
-make eval
-
-# Start all services
+# 3. Start all services (PostgreSQL + Redis + RazorSentry + RQ worker)
 docker compose up --build -d
-docker compose ps
 
-# Open dashboard
+# 4. Wait ~30 seconds then verify everything is healthy
+docker compose ps
+# All four services should show as healthy or running
+
+# 5. Open the live dashboard
 open http://localhost:8000/dashboard
 
-# Demo curl
+# 6. Run the demo
 bash scripts/demo_curl.sh
 
-# Inspect audit log
+# 7. Inspect the PostgreSQL audit log
 make db-shell
+# Inside psql: SELECT transaction_id, decision, score FROM decisions LIMIT 5;
 ```
 
-### Environment Variables (.env)
-```env
-DATABASE_URL=postgresql://razorsentry:razorsentry_pass@db:5432/razorsentry
-REDIS_URL=redis://redis:6379
-GROQ_API_KEY=your_groq_key_here
-PII_SALT=your_secret_salt_here
-LOAD_TEST_MODE=false
+**Total time from clone to running dashboard: under 10 minutes on a standard connection.**
+
+> **No PaySim download needed for the demo.** `data/sample_transactions.csv`
+> is included for quick testing. For full model training, download
+> [PaySim from Kaggle](https://www.kaggle.com/datasets/mtalaltariq/paysim-data)
+> and place it at `data/PaySim.csv`, then run `python src/data_loader.py`
+> and `python src/train.py`. The trained model is already committed to
+> `models/lgbm_model.pkl` so **training is not required to run the service.**
+
+### Without Docker (SQLite fallback)
+
+If Docker is not available:
+
+```bash
+pip install -r requirements.txt
+
+# Use SQLite instead of PostgreSQL
+export DATABASE_URL=sqlite:///razorsentry.db
+export MODEL_PATH=models/lgbm_model.pkl
+export THRESHOLD_PATH=models/threshold.txt
+
+# Start the service (single worker, no Redis queue)
+uvicorn src.service:app --reload --port 8000
+
+# In a separate terminal, test it
+curl -s http://localhost:8000/health | python3 -m json.tool
 ```
+
+> Note: Without Docker, async scoring (/score/async) is unavailable as
+> it requires Redis. All other endpoints including /score, /dashboard,
+> /monitor/spike, and /monitor/drift work normally.
 
 ---
 
