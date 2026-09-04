@@ -18,6 +18,9 @@ Two scoring paths handle different load profiles:
 ---
 
 ## Production Architecture Diagram
+
+![RazorSentry Production Architecture](docs/architecture_diagram.png)
+
 ```
                      ┌─────────────────────────────────────────────┐
                      │           INCOMING TRAFFIC                  │
