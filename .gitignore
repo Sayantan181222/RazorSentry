@@ -25,3 +25,4 @@ reports/load_test*
 railway.json
 Dockerfile.railway
 notebooks/
+scripts/draw_architecture.py
